@@ -88,9 +88,29 @@ const mockQuery = async (text, params) => {
     return { rows: [ride] };
   }
 
-  // 4. Get Active Rides (List matching)
+  // 4. Get Active Rides (List matching with Left Joined Requests)
+  if (sql.includes('SELECT r.*, u.name as rider_name') && sql.includes('LEFT JOIN ride_requests rr')) {
+    const passengerId = params[0];
+    const rows = store.rides
+      .filter(r => ['Scheduled', 'Active'].includes(r.status))
+      .map(r => {
+        const u = store.users.find(user => user.id === r.rider_id) || {};
+        const req = store.ride_requests.find(rq => rq.ride_id === r.id && rq.passenger_id === passengerId);
+        return {
+          ...r,
+          rider_name: u.name || 'DIU Commuter',
+          rider_rating: u.rating || 5.0,
+          rider_phone: u.phone || '01700000000',
+          passenger_request_status: req ? req.status : null,
+          passenger_request_id: req ? req.id : null
+        };
+      })
+      .filter(r => r.available_seats > 0 || r.passenger_request_status !== null);
+    return { rows };
+  }
+
+  // Legacy/Fallback for Get Active Rides
   if (sql.includes('SELECT r.*, u.name as rider_name')) {
-    // Return all scheduled/active rides with joined rider profiles
     const rows = store.rides
       .filter(r => ['Scheduled', 'Active'].includes(r.status))
       .map(r => {
@@ -244,6 +264,22 @@ const mockQuery = async (text, params) => {
       };
     });
     return { rows };
+  }
+
+  // 15. Delete / Cancel Requests (Optimization Phase)
+  if (sql.includes('DELETE FROM ride_requests WHERE id =')) {
+    const id = params[0];
+    const idx = store.ride_requests.findIndex(r => r.id === id);
+    if (idx !== -1) {
+      store.ride_requests.splice(idx, 1);
+    }
+    return { rows: [] };
+  }
+  if (sql.includes('UPDATE rides SET available_seats = available_seats + 1')) {
+    const rideId = params[0];
+    const r = store.rides.find(ride => ride.id === rideId);
+    if (r) r.available_seats += 1;
+    return { rows: [] };
   }
 
   return { rows: [] };

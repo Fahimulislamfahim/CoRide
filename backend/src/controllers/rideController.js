@@ -75,18 +75,21 @@ const createRide = async (req, res) => {
 
 // Get active matching rides for passengers
 const getActiveRides = async (req, res) => {
+  const passengerId = req.user.id;
   try {
-    // Return rides that are scheduled or active, and have seats left
+    // Return rides that are scheduled or active, and have seats left (or the user has already requested them)
     const query = `
-      SELECT r.*, u.name as rider_name, u.rating as rider_rating, u.phone as rider_phone
+      SELECT r.*, u.name as rider_name, u.rating as rider_rating, u.phone as rider_phone,
+             rr.status as passenger_request_status, rr.id as passenger_request_id
       FROM rides r
       JOIN users u ON r.rider_id = u.id
+      LEFT JOIN ride_requests rr ON rr.ride_id = r.id AND rr.passenger_id = $1
       WHERE r.status IN ('Scheduled', 'Active') 
-        AND r.available_seats > 0
+        AND (r.available_seats > 0 OR rr.status IS NOT NULL)
         AND r.departure_time > NOW() - INTERVAL '30 minutes'
       ORDER BY r.departure_time ASC
     `;
-    const result = await db.query(query);
+    const result = await db.query(query, [passengerId]);
     
     // Add estimated fare share info to each ride based on 1 rider join
     const ridesWithFare = result.rows.map(ride => {
@@ -369,6 +372,63 @@ const getRideDetails = async (req, res) => {
   }
 };
 
+// Cancel Ride Request (Passenger Only)
+const cancelRequest = async (req, res) => {
+  const passengerId = req.user.id;
+  const { ride_id } = req.body;
+
+  if (!ride_id) {
+    return res.status(400).json({ error: 'Ride ID is required.' });
+  }
+
+  try {
+    // 1. Find if the request exists and its status
+    const requestQuery = `
+      SELECT * FROM ride_requests 
+      WHERE ride_id = $1 AND passenger_id = $2
+    `;
+    const requestResult = await db.query(requestQuery, [ride_id, passengerId]);
+    if (requestResult.rows.length === 0) {
+      return res.status(404).json({ error: 'Request not found.' });
+    }
+    const request = requestResult.rows[0];
+
+    // 2. Perform deletion and seat increment (if accepted)
+    const client = await db.pool.connect();
+    try {
+      await client.query('BEGIN');
+
+      // Delete request record
+      await client.query('DELETE FROM ride_requests WHERE id = $1', [request.id]);
+
+      // If it was accepted, restore seat count
+      if (request.status === 'Accepted') {
+        await client.query(
+          'UPDATE rides SET available_seats = available_seats + 1 WHERE id = $1',
+          [ride_id]
+        );
+      }
+
+      await client.query('COMMIT');
+    } catch (err) {
+      await client.query('ROLLBACK');
+      throw err;
+    } finally {
+      client.release();
+    }
+
+    // 3. Recalculate dynamic fares for remaining passengers if this request was accepted
+    if (request.status === 'Accepted') {
+      await updateDynamicFaresForRide(ride_id);
+    }
+
+    res.json({ message: 'Ride request cancelled successfully.' });
+  } catch (err) {
+    console.error('Cancel request error:', err);
+    res.status(500).json({ error: 'Failed to cancel ride request.' });
+  }
+};
+
 module.exports = {
   createRide,
   getActiveRides,
@@ -376,4 +436,5 @@ module.exports = {
   respondToRequest,
   updateRideStatus,
   getRideDetails,
+  cancelRequest,
 };

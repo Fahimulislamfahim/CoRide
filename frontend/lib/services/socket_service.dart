@@ -1,9 +1,16 @@
-import 'package:flutter/foundation.dart';
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 class SocketService {
   IO.Socket? _socket;
+  final FlutterSecureStorage _storage = const FlutterSecureStorage(
+    webOptions: WebOptions(dbName: "CoRideStorage", publicKey: "CoRidePubKey")
+  );
+
+  // Cached Room ID for auto-rejoining on drop recovery
+  String? _currentRideId;
   
   // Connection State Stream
   final _connectionController = StreamController<bool>.broadcast();
@@ -22,14 +29,18 @@ class SocketService {
   static const String socketUrl = kIsWeb ? 'http://localhost:5000' : 'http://10.0.2.2:5000';
   // Update this to your deployed Render URL in production, e.g. 'https://coride-backend.onrender.com'
 
-  void connect() {
+  void connect() async {
     if (_socket != null && _socket!.connected) return;
+
+    // Retrieve active session token for WebSocket handshake authentication
+    final token = await _storage.read(key: 'jwt_token');
 
     print('Connecting to Socket server: $socketUrl');
     
     // Configure socket options to handle poor network along Birulia embankment
     _socket = IO.io(socketUrl, IO.OptionBuilder()
       .setTransports(['websocket']) // Force WebSocket only for performance
+      .setAuth({'token': token ?? ''}) // Handshake Authentication Payload
       .enableAutoConnect()
       .enableReconnection()
       .setReconnectionDelay(2000)
@@ -41,6 +52,12 @@ class SocketService {
       print('[Socket] Connected to server successfully');
       _isConnected = true;
       _connectionController.add(true);
+
+      // Auto-rejoin previous room if connection dropped and recovered (embankment fallback)
+      if (_currentRideId != null) {
+        _socket!.emit('join_ride_room', _currentRideId);
+        print('[Socket Recovery] Automatically rejoined ride room: $_currentRideId');
+      }
     });
 
     _socket!.onDisconnect((_) {
@@ -72,12 +89,18 @@ class SocketService {
 
   // API Methods
   void joinRideRoom(String rideId) {
+    _currentRideId = rideId; // Cache room ID
     if (_socket == null || !_isConnected) {
       print('[Socket Warning] Cannot join room, socket not connected.');
       return;
     }
     _socket!.emit('join_ride_room', rideId);
     print('[Socket] Emitted join_ride_room for Ride ID: $rideId');
+  }
+
+  void leaveRideRoom() {
+    _currentRideId = null;
+    print('[Socket] Cleared cached room ID');
   }
 
   void updateLocation(String rideId, double lat, double lng, {double speed = 0.0}) {

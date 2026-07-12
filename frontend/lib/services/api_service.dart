@@ -5,7 +5,12 @@ import 'package:flutter/foundation.dart';
 
 class ApiService {
   final Dio _dio = Dio();
-  final FlutterSecureStorage _storage = const FlutterSecureStorage();
+  final FlutterSecureStorage _storage = const FlutterSecureStorage(
+    webOptions: WebOptions(
+      dbName: 'CoRideStorage',
+      publicKey: 'CoRidePubKey',
+    ),
+  );
   
   // Render Free Tier URL (fallback to local machine IP for emulator testing)
   // For android emulators, 10.0.2.2 points to localhost of host machine.

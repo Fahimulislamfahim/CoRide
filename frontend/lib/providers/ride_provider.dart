@@ -103,6 +103,31 @@ class RideProvider with ChangeNotifier {
     return false;
   }
 
+  // Cancel a ride request (Passenger only)
+  Future<bool> cancelRideRequest(String rideId) async {
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      final response = await _apiService.post('/rides/cancel-request', data: {
+        'ride_id': rideId,
+      });
+
+      if (response.statusCode == 200) {
+        _isLoading = false;
+        notifyListeners();
+        return true;
+      }
+    } catch (e) {
+      _error = e.toString();
+    }
+
+    _isLoading = false;
+    notifyListeners();
+    return false;
+  }
+
   // Accept/Reject request (Rider only)
   Future<bool> respondToPassengerRequest(String requestId, String action) async {
     _isLoading = true;

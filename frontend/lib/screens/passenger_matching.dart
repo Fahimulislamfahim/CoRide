@@ -106,6 +106,16 @@ class _PassengerMatchingState extends State<PassengerMatching> {
     }
   }
 
+  void _cancelRequest(String rideId) async {
+    final success = await Provider.of<RideProvider>(context, listen: false).cancelRideRequest(rideId);
+    if (success && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Ride request cancelled successfully.')),
+      );
+      Provider.of<RideProvider>(context, listen: false).fetchActiveRides();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final rideProvider = Provider.of<RideProvider>(context);
@@ -277,11 +287,30 @@ class _PassengerMatchingState extends State<PassengerMatching> {
                                       ],
                                     ),
                                     const SizedBox(height: 12),
+                                    const SizedBox(height: 6),
+                                    // Status Badge rendering
+                                    if (ride['passenger_request_status'] != null)
+                                      Padding(
+                                        padding: const EdgeInsets.only(bottom: 8.0),
+                                        child: Row(
+                                          children: [
+                                            const Text('Request Status: ', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                                            Chip(
+                                              label: Text(ride['passenger_request_status']),
+                                              backgroundColor: ride['passenger_request_status'] == 'Accepted'
+                                                  ? Colors.green[100]
+                                                  : ride['passenger_request_status'] == 'Pending'
+                                                      ? Colors.orange[100]
+                                                      : Colors.red[100],
+                                            ),
+                                          ],
+                                        ),
+                                      ),
                                     Row(
                                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                       children: [
                                         // Trigger live tracking room if user is accepted and rider starts
-                                        if (ride['status'] == 'Active')
+                                        if (ride['status'] == 'Active' && ride['passenger_request_status'] == 'Accepted')
                                           ElevatedButton.icon(
                                             style: ElevatedButton.styleFrom(
                                               backgroundColor: Colors.amber[800],
@@ -294,14 +323,27 @@ class _PassengerMatchingState extends State<PassengerMatching> {
                                         else
                                           const SizedBox.shrink(),
                                           
-                                        ElevatedButton(
-                                          style: ElevatedButton.styleFrom(
-                                            backgroundColor: primaryColor,
-                                            foregroundColor: Colors.white,
-                                          ),
-                                          onPressed: () => _requestJoin(ride['id']),
-                                          child: const Text('Request Join'),
-                                        ),
+                                        // Dynamic action buttons
+                                        if (ride['passenger_request_status'] == null)
+                                          ElevatedButton(
+                                            style: ElevatedButton.styleFrom(
+                                              backgroundColor: primaryColor,
+                                              foregroundColor: Colors.white,
+                                            ),
+                                            onPressed: () => _requestJoin(ride['id']),
+                                            child: const Text('Request Join'),
+                                          )
+                                        else if (ride['passenger_request_status'] == 'Pending' || ride['passenger_request_status'] == 'Accepted')
+                                          ElevatedButton(
+                                            style: ElevatedButton.styleFrom(
+                                              backgroundColor: Colors.red[800],
+                                              foregroundColor: Colors.white,
+                                            ),
+                                            onPressed: () => _cancelRequest(ride['id']),
+                                            child: const Text('Cancel Request'),
+                                          )
+                                        else
+                                          const SizedBox.shrink(), // Rejected requests can't cancel or rejoin
                                       ],
                                     ),
                                   ],

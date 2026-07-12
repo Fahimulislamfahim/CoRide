@@ -15,6 +15,9 @@ router.get('/active', rideController.getActiveRides);
 // Request a ride
 router.post('/request', rideController.requestRide);
 
+// Cancel a request (Passenger only)
+router.post('/cancel-request', rideController.cancelRequest);
+
 // Accept/reject a ride request
 router.post('/respond', rideController.respondToRequest);
 

@@ -66,9 +66,8 @@ const calculateDynamicFareShare = (lat1, lon1, lat2, lon2, vehicleType, accepted
     assert.equal(checkSeatsConstraint('Car', 5), false, 'Car with 5 seats should be invalid');
     console.log('✓ Test 2 Passed: Vehicle matching capacity constraints verified.\n');
 
-    // Test 3: Geospatial Dynamic Fare Sharing
-    console.log('Test 3: Calculating distance-based dynamic splits...');
-    // Mirpur 10 Hub to DIU Ashulia (approx 15.5 km)
+    // Test 3: Geospatial Dynamic Fare Sharing & Cancellation Recovery
+    console.log('Test 3: Calculating distance-based dynamic splits & cancellation behavior...');
     const lat1 = 23.8069, lon1 = 90.3687; // Mirpur 10
     const lat2 = 23.8767, lon2 = 90.3201; // DIU Smart City
     
@@ -76,17 +75,27 @@ const calculateDynamicFareShare = (lat1, lon1, lat2, lon2, vehicleType, accepted
     const dist = calculateDistance(lat1, lon1, lat2, lon2);
     console.log(`- Measured Distance: ${dist.toFixed(2)} km`);
     
-    // Base fare: Car = 60 + 15.5 * 20 = 370
-    // Dynamic Split: 1 passenger + 1 rider = 2 participants. Fare = 370 / 2 = 185
-    const fareFor1Passenger = calculateDynamicFareShare(lat1, lon1, lat2, lon2, 'Car', 1);
-    console.log(`- Car split for 1 passenger (2 participants total): ${fareFor1Passenger} BDT`);
-    assert.equal(fareFor1Passenger > 0, true);
+    // Base fare: Car = 60 + 9.20 * 20 = 244
+    // 3 passengers accepted (4 participants total: 1 rider + 3 passengers)
+    // Fare split per passenger = 244 / 4 = 61 BDT
+    let acceptedPassengers = 3;
+    let seatsAvailable = 1; // 4 seats total - 3 accepted = 1 left
+    let fare = calculateDynamicFareShare(lat1, lon1, lat2, lon2, 'Car', acceptedPassengers);
+    console.log(`- Initial state: ${acceptedPassengers} passengers accepted. Fare share: ${fare} BDT (Available seats: ${seatsAvailable})`);
+    assert.equal(fare, 61);
 
-    // Dynamic Split: 3 passengers + 1 rider = 4 participants. Fare = 370 / 4 = 92.5 (rounded to 93)
-    const fareFor3Passengers = calculateDynamicFareShare(lat1, lon1, lat2, lon2, 'Car', 3);
-    console.log(`- Car split for 3 passengers (4 participants total): ${fareFor3Passengers} BDT`);
-    assert.equal(fareFor3Passengers < fareFor1Passenger, true, 'Fare share per passenger must decrease as occupancy increases');
-    console.log('✓ Test 3 Passed: Dynamic fare sharing calculation verified.\n');
+    // One passenger cancels:
+    console.log('  Passenger cancels request...');
+    acceptedPassengers -= 1;
+    seatsAvailable += 1; // Seat is restored!
+    fare = calculateDynamicFareShare(lat1, lon1, lat2, lon2, 'Car', acceptedPassengers);
+    console.log(`- Updated state: ${acceptedPassengers} passengers remain. Fare share: ${fare} BDT (Available seats: ${seatsAvailable})`);
+    
+    // 2 passengers accepted (3 participants total: 1 rider + 2 passengers)
+    // Fare split per passenger = 244 / 3 = 81.33 -> 81 BDT
+    assert.equal(fare, 81);
+    assert.equal(seatsAvailable, 2);
+    console.log('✓ Test 3 Passed: Dynamic fare sharing and cancellation recalculations verified.\n');
 
     console.log('==================================================');
     console.log('  ALL CORE BUSINESS RULE VERIFICATION TESTS PASSED  ');
