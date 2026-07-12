@@ -5,6 +5,7 @@ import 'providers/ride_provider.dart';
 import 'screens/login_screen.dart';
 import 'screens/rider_dashboard.dart';
 import 'screens/passenger_matching.dart';
+import 'screens/onboarding_screen.dart';
 
 void main() {
   runApp(const CoRideApp());
@@ -77,7 +78,7 @@ class CoRideApp extends StatelessWidget {
             bodyMedium: TextStyle(color: Color(0xFF64748B), fontSize: 14),
           ),
         ),
-        home: const AuthWrapper(),
+        home: const OnboardingScreen(),
       ),
     );
   }
@@ -149,47 +150,82 @@ class _AppHubState extends State<AppHub> {
     ProfileScreen(),
   ];
 
-  @override
-  Widget build(BuildContext context) {
+  Widget _buildFloatingNavItem(int index, IconData outlineIcon, IconData filledIcon, String label) {
+    final isSelected = _selectedIndex == index;
     const primaryColor = Color(0xFF0F5132);
 
+    return InkWell(
+      onTap: () {
+        setState(() {
+          _selectedIndex = index;
+        });
+      },
+      borderRadius: BorderRadius.circular(100),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 300),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          color: isSelected ? primaryColor : Colors.transparent,
+          borderRadius: BorderRadius.circular(100),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              isSelected ? filledIcon : outlineIcon,
+              color: isSelected ? Colors.white : const Color(0xFF64748B),
+              size: 20,
+            ),
+            if (isSelected) ...[
+              const SizedBox(width: 8),
+              Text(
+                label,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 13,
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
+      extendBody: true, // Allows content to flow behind the floating navigation bar
       body: IndexedStack(
         index: _selectedIndex,
         children: _screens,
       ),
-      // Clean Material 3 NavigationBar with pill indicators
       bottomNavigationBar: Container(
-        decoration: BoxDecoration(
-          border: Border(top: BorderSide(color: Colors.grey.shade200, width: 1)),
-        ),
-        child: NavigationBar(
-          selectedIndex: _selectedIndex,
-          elevation: 0,
-          backgroundColor: Colors.white,
-          indicatorColor: primaryColor.withOpacity(0.12),
-          onDestinationSelected: (index) {
-            setState(() {
-              _selectedIndex = index;
-            });
-          },
-          destinations: const [
-            NavigationDestination(
-              icon: Icon(Icons.search, color: Color(0xFF64748B)),
-              selectedIcon: Icon(Icons.search, color: primaryColor),
-              label: 'Find Ride',
-            ),
-            NavigationDestination(
-              icon: Icon(Icons.add_road, color: Color(0xFF64748B)),
-              selectedIcon: Icon(Icons.add_road, color: primaryColor),
-              label: 'Offer Ride',
-            ),
-            NavigationDestination(
-              icon: Icon(Icons.person_outline, color: Color(0xFF64748B)),
-              selectedIcon: Icon(Icons.person, color: primaryColor),
-              label: 'Profile',
-            ),
-          ],
+        color: Colors.transparent,
+        padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+        child: Container(
+          height: 64,
+          decoration: BoxDecoration(
+            color: const Color(0xFFF1F5F9), // Light grey slate
+            borderRadius: BorderRadius.circular(100),
+            border: Border.all(color: Colors.white.withOpacity(0.5), width: 1.5),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.04),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              _buildFloatingNavItem(0, Icons.home_outlined, Icons.home, 'Home'),
+              _buildFloatingNavItem(1, Icons.add_road_outlined, Icons.add_road, 'Offer'),
+              _buildFloatingNavItem(2, Icons.person_outline, Icons.person, 'Profile'),
+            ],
+          ),
         ),
       ),
     );

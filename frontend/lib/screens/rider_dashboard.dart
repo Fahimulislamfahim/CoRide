@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import '../providers/ride_provider.dart';
 import '../providers/auth_provider.dart';
 import '../services/socket_service.dart';
+import '../widgets/vector_map.dart'; // Import custom vector map
 
 class RiderDashboard extends StatefulWidget {
   const RiderDashboard({super.key});
@@ -160,16 +161,16 @@ class _RiderDashboardState extends State<RiderDashboard> {
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FA),
       appBar: AppBar(
-        title: const Text('Rider Dashboard', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 20)),
+        title: const Text('Publish Commute', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 20)),
         backgroundColor: primaryColor,
         elevation: 0,
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 96), // Extra padding for floating bottom nav
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // 1. Premium dark-themed GPS simulation console
+            // 1. Premium GPS active driver console with Custom Painter VectorMap
             if (_isSimulating) ...[
               Container(
                 width: double.infinity,
@@ -219,6 +220,14 @@ class _RiderDashboardState extends State<RiderDashboard> {
                           child: const Text('Arrived', style: TextStyle(fontWeight: FontWeight.bold)),
                         )
                       ],
+                    ),
+                    const SizedBox(height: 16),
+                    // Vector Map Simulation render
+                    VectorMap(
+                      currentLat: _simulatedLat,
+                      currentLng: _simulatedLng,
+                      isActive: true,
+                      vehicleType: _vehicleType,
                     ),
                     const SizedBox(height: 16),
                     // Progress Bar
