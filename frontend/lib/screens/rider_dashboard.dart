@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import '../providers/ride_provider.dart';
 import '../providers/auth_provider.dart';
 import '../services/socket_service.dart';
@@ -152,21 +153,21 @@ class _RiderDashboardState extends State<RiderDashboard> {
     final rideProvider = Provider.of<RideProvider>(context);
     final user = Provider.of<AuthProvider>(context).user;
 
-    const primaryColor = Color(0xFF0F5132); // DIU Green
-    const accentColor = Color(0xFF00B4D8);
+    const primaryColor = Color(0xFF101828);
+    const accentColor = Color(0xFF2E90FA);
 
     final userActiveRides = rideProvider.activeRides.where((r) => r['rider_id'] == user?['id']).toList();
     final hasActiveOffer = userActiveRides.isNotEmpty;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FA),
       appBar: AppBar(
-        title: const Text('Publish Commute', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 20)),
-        backgroundColor: primaryColor,
+        title: const Text('Offer a Commute', style: TextStyle(color: primaryColor, fontWeight: FontWeight.bold, fontSize: 20)),
+        backgroundColor: Colors.transparent,
         elevation: 0,
+        centerTitle: false,
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(16, 16, 16, 96), // Extra padding for floating bottom nav
+        padding: const EdgeInsets.fromLTRB(24, 8, 24, 120), // Extra padding for floating bottom nav
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -174,15 +175,15 @@ class _RiderDashboardState extends State<RiderDashboard> {
             if (_isSimulating) ...[
               Container(
                 width: double.infinity,
-                padding: const EdgeInsets.all(20),
+                padding: const EdgeInsets.all(24),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF1E293B), // Dark Slate
-                  borderRadius: BorderRadius.circular(20),
+                  color: const Color(0xFF1D2939), // Dark Slate
+                  borderRadius: BorderRadius.circular(24),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.08),
-                      blurRadius: 10,
-                      offset: const Offset(0, 4),
+                      color: const Color(0xFF101828).withOpacity(0.2),
+                      blurRadius: 24,
+                      offset: const Offset(0, 8),
                     )
                   ]
                 ),
@@ -192,36 +193,36 @@ class _RiderDashboardState extends State<RiderDashboard> {
                     Row(
                       children: [
                         Container(
-                          padding: const EdgeInsets.all(8),
+                          padding: const EdgeInsets.all(10),
                           decoration: BoxDecoration(
-                            color: accentColor.withOpacity(0.15),
-                            shape: BoxShape.circle,
+                            color: accentColor.withOpacity(0.2),
+                            borderRadius: BorderRadius.circular(12),
                           ),
-                          child: const Icon(Icons.navigation, color: accentColor, size: 20),
+                          child: const Icon(Icons.navigation, color: accentColor, size: 24),
                         ),
-                        const SizedBox(width: 12),
+                        const SizedBox(width: 16),
                         const Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text('LIVE COMMUTE ACTIVE', style: TextStyle(color: accentColor, fontWeight: FontWeight.bold, fontSize: 12, letterSpacing: 0.5)),
-                              Text('Broadcasting GPS signals...', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 15)),
+                              Text('LIVE COMMUTE ACTIVE', style: TextStyle(color: accentColor, fontWeight: FontWeight.w600, fontSize: 12, letterSpacing: 0.5)),
+                              Text('Broadcasting Location...', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
                             ],
                           ),
                         ),
                         ElevatedButton(
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.red.shade600,
+                            backgroundColor: const Color(0xFFD92D20),
                             foregroundColor: Colors.white,
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                           ),
                           onPressed: () => _stopRideSimulation(_activeRideId!),
-                          child: const Text('Arrived', style: TextStyle(fontWeight: FontWeight.bold)),
+                          child: const Text('End Ride', style: TextStyle(fontWeight: FontWeight.bold)),
                         )
                       ],
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 24),
                     // Vector Map Simulation render
                     VectorMap(
                       currentLat: _simulatedLat,
@@ -257,8 +258,8 @@ class _RiderDashboardState extends State<RiderDashboard> {
 
             // 2. Active Ride Details & Request Monitor
             if (hasActiveOffer) ...[
-              const Text('Active Commutes Offered', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: primaryColor)),
-              const SizedBox(height: 10),
+              const Text('Active Commutes Offered', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: primaryColor)),
+              const SizedBox(height: 16),
               ...userActiveRides.map((ride) {
                 final rideId = ride['id'];
                 
@@ -269,7 +270,7 @@ class _RiderDashboardState extends State<RiderDashboard> {
                     if (details == null || details['ride']['id'] != rideId) {
                       return const Card(
                         child: Padding(
-                          padding: EdgeInsets.all(24), 
+                          padding: EdgeInsets.all(32),
                           child: Center(child: CircularProgressIndicator())
                         )
                       );
@@ -280,32 +281,48 @@ class _RiderDashboardState extends State<RiderDashboard> {
                     final acceptedRequests = requests.where((req) => req['status'] == 'Accepted').toList();
 
                     return Card(
-                      margin: const EdgeInsets.only(bottom: 20),
+                      margin: const EdgeInsets.only(bottom: 24),
                       child: Padding(
-                        padding: const EdgeInsets.all(16.0),
+                        padding: const EdgeInsets.all(24.0),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Row(
                               children: [
-                                const Icon(Icons.share_location, color: primaryColor, size: 24),
-                                const SizedBox(width: 8),
+                                Container(
+                                  padding: const EdgeInsets.all(8),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFF2F4F7),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: const Icon(Icons.share_location, color: Color(0xFF475467), size: 20),
+                                ),
+                                const SizedBox(width: 12),
                                 Expanded(
-                                  child: Text(
-                                    '${ride['origin_name']} ➔ ${ride['destination_name']}',
-                                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Color(0xFF1E293B)),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        '${ride['origin_name']} to',
+                                        style: const TextStyle(color: Color(0xFF475467), fontSize: 13, fontWeight: FontWeight.w500),
+                                      ),
+                                      Text(
+                                        ride['destination_name'],
+                                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: primaryColor),
+                                      ),
+                                    ],
                                   ),
                                 ),
                                 Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                                   decoration: BoxDecoration(
-                                    color: ride['status'] == 'Active' ? Colors.amber.shade50 : Colors.blue.shade50,
+                                    color: ride['status'] == 'Active' ? const Color(0xFFFEF0C7) : const Color(0xFFEFF8FF),
                                     borderRadius: BorderRadius.circular(100),
                                   ),
                                   child: Text(
                                     ride['status'],
                                     style: TextStyle(
-                                      color: ride['status'] == 'Active' ? Colors.amber.shade800 : Colors.blue.shade700,
+                                      color: ride['status'] == 'Active' ? const Color(0xFFB54708) : const Color(0xFF175CD3),
                                       fontWeight: FontWeight.bold,
                                       fontSize: 12
                                     ),
@@ -313,73 +330,127 @@ class _RiderDashboardState extends State<RiderDashboard> {
                                 ),
                               ],
                             ),
-                            const SizedBox(height: 12),
-                            Text('Departure: ${DateFormat('hh:mm a').format(DateTime.parse(ride['departure_time']))}', style: const TextStyle(color: Colors.grey, fontSize: 13)),
-                            const Divider(height: 24),
+                            const SizedBox(height: 16),
+                            Row(
+                              children: [
+                                const Icon(Icons.access_time, size: 16, color: Color(0xFF667085)),
+                                const SizedBox(width: 6),
+                                Text('Departs at ${DateFormat('hh:mm a').format(DateTime.parse(ride['departure_time']))}', style: const TextStyle(color: Color(0xFF344054), fontSize: 14, fontWeight: FontWeight.w500)),
+                              ],
+                            ),
+                            const Padding(
+                              padding: EdgeInsets.symmetric(vertical: 20.0),
+                              child: Divider(height: 1, color: Color(0xFFEAECF0)),
+                            ),
                             
                             // Accepted Passengers list
                             if (acceptedRequests.isNotEmpty) ...[
-                              const Text('Passengers sharing this ride:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF1E293B))),
-                              const SizedBox(height: 8),
+                              const Text('Passengers Joined', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: primaryColor)),
+                              const SizedBox(height: 12),
                               ...acceptedRequests.map((req) => Container(
-                                margin: const EdgeInsets.only(bottom: 8),
+                                margin: const EdgeInsets.only(bottom: 12),
+                                padding: const EdgeInsets.all(12),
                                 decoration: BoxDecoration(
-                                  color: Colors.grey.shade50,
-                                  borderRadius: BorderRadius.circular(12),
+                                  color: const Color(0xFFF9FAFB),
+                                  borderRadius: BorderRadius.circular(16),
+                                  border: Border.all(color: const Color(0xFFEAECF0)),
                                 ),
-                                child: ListTile(
-                                  dense: true,
-                                  leading: const CircleAvatar(
-                                    backgroundColor: Colors.green,
-                                    radius: 12,
-                                    child: Icon(Icons.check, color: Colors.white, size: 14),
-                                  ),
-                                  title: Text(req['name'], style: const TextStyle(fontWeight: FontWeight.bold)),
-                                  subtitle: Text('Call: ${req['phone']}'),
-                                  trailing: Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                    decoration: BoxDecoration(color: primaryColor.withOpacity(0.08), borderRadius: BorderRadius.circular(8)),
-                                    child: Text('${req['dynamic_fare_share']} BDT', style: const TextStyle(color: primaryColor, fontWeight: FontWeight.bold)),
-                                  ),
+                                child: Row(
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.all(2),
+                                      decoration: const BoxDecoration(color: Color(0xFF12B76A), shape: BoxShape.circle),
+                                      child: const Icon(Icons.check, color: Colors.white, size: 12),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(req['name'], style: const TextStyle(fontWeight: FontWeight.bold, color: primaryColor)),
+                                          Text('Contact: ${req['phone']}', style: const TextStyle(fontSize: 12, color: Color(0xFF667085))),
+                                        ],
+                                      ),
+                                    ),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                      decoration: BoxDecoration(color: const Color(0xFFF2F4F7), borderRadius: BorderRadius.circular(8)),
+                                      child: Text('${req['dynamic_fare_share']} BDT', style: const TextStyle(color: primaryColor, fontWeight: FontWeight.bold)),
+                                    ),
+                                  ],
                                 ),
-                              )),
-                              const SizedBox(height: 8),
+                              )).toList().animate().fadeIn().slideX(begin: 0.1),
+                              const SizedBox(height: 16),
                             ],
 
                             // Pending join requests
                             if (pendingRequests.isNotEmpty) ...[
-                              const Text('Join Requests (Pending)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.orange)),
-                              const SizedBox(height: 8),
-                              ...pendingRequests.map((req) => Card(
-                                color: Colors.orange.shade50.withOpacity(0.4),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                  side: BorderSide(color: Colors.orange.shade100)
+                              const Text('Pending Requests', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: Color(0xFFDC6803))),
+                              const SizedBox(height: 12),
+                              ...pendingRequests.map((req) => Container(
+                                margin: const EdgeInsets.only(bottom: 12),
+                                padding: const EdgeInsets.all(16),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFFFFAEB),
+                                  borderRadius: BorderRadius.circular(16),
+                                  border: Border.all(color: const Color(0xFFFEF0C7)),
                                 ),
-                                child: ListTile(
-                                  title: Text(req['name'], style: const TextStyle(fontWeight: FontWeight.bold)),
-                                  subtitle: Row(
-                                    children: [
-                                      const Icon(Icons.star, color: Colors.amber, size: 14),
-                                      Text(' ${req['rating']} | ', style: const TextStyle(fontSize: 12)),
-                                      Text('Fare: ${req['dynamic_fare_share']} BDT', style: const TextStyle(fontSize: 12)),
-                                    ],
-                                  ),
-                                  trailing: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      IconButton(
-                                        icon: const Icon(Icons.check_circle, color: Colors.green, size: 28),
-                                        onPressed: () => rideProvider.respondToPassengerRequest(req['request_id'], 'Accepted'),
-                                      ),
-                                      IconButton(
-                                        icon: const Icon(Icons.cancel, color: Colors.red, size: 28),
-                                        onPressed: () => rideProvider.respondToPassengerRequest(req['request_id'], 'Rejected'),
-                                      ),
-                                    ],
-                                  ),
+                                child: Column(
+                                  children: [
+                                    Row(
+                                      children: [
+                                        const CircleAvatar(
+                                          radius: 16,
+                                          backgroundColor: Color(0xFFF2F4F7),
+                                          child: Icon(Icons.person, size: 18, color: Color(0xFF475467)),
+                                        ),
+                                        const SizedBox(width: 12),
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              Text(req['name'], style: const TextStyle(fontWeight: FontWeight.bold, color: primaryColor, fontSize: 15)),
+                                              const SizedBox(height: 2),
+                                              Row(
+                                                children: [
+                                                  const Icon(Icons.star_rounded, color: Color(0xFFF79009), size: 14),
+                                                  Text(' ${req['rating']}', style: const TextStyle(fontSize: 13, color: Color(0xFFB54708), fontWeight: FontWeight.w600)),
+                                                ],
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                        Text('${req['dynamic_fare_share']} BDT', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Color(0xFFB54708))),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 16),
+                                    Row(
+                                      children: [
+                                        Expanded(
+                                          child: OutlinedButton(
+                                            style: OutlinedButton.styleFrom(
+                                              foregroundColor: const Color(0xFFD92D20),
+                                              side: const BorderSide(color: Color(0xFFFDA29B)),
+                                            ),
+                                            onPressed: () => rideProvider.respondToPassengerRequest(req['request_id'], 'Rejected'),
+                                            child: const Text('Decline'),
+                                          ),
+                                        ),
+                                        const SizedBox(width: 12),
+                                        Expanded(
+                                          child: ElevatedButton(
+                                            style: ElevatedButton.styleFrom(
+                                              backgroundColor: const Color(0xFF12B76A),
+                                            ),
+                                            onPressed: () => rideProvider.respondToPassengerRequest(req['request_id'], 'Accepted'),
+                                            child: const Text('Accept'),
+                                          ),
+                                        ),
+                                      ],
+                                    )
+                                  ],
                                 ),
-                              )),
+                              )).toList().animate().fadeIn().slideX(begin: 0.1),
                               const SizedBox(height: 8),
                             ],
 
@@ -391,38 +462,41 @@ class _RiderDashboardState extends State<RiderDashboard> {
                             
                             if (ride['status'] == 'Scheduled' && !_isSimulating)
                               Padding(
-                                padding: const EdgeInsets.only(top: 8.0),
+                                padding: const EdgeInsets.only(top: 16.0),
                                 child: SizedBox(
                                   width: double.infinity,
-                                  height: 46,
+                                  height: 52,
                                   child: ElevatedButton.icon(
-                                    style: ElevatedButton.styleFrom(backgroundColor: primaryColor, foregroundColor: Colors.white),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: accentColor,
+                                      elevation: 0,
+                                    ),
                                     onPressed: () => _startRideSimulation(
                                       rideId, 
                                       ride['origin_lat'], ride['origin_lng'], 
                                       ride['destination_lat'], ride['destination_lng']
                                     ),
-                                    icon: const Icon(Icons.play_arrow),
-                                    label: const Text('Start Commuting Session', style: TextStyle(fontWeight: FontWeight.bold)),
+                                    icon: const Icon(Icons.play_circle_fill),
+                                    label: const Text('Start Commute Now'),
                                   ),
                                 ),
                               ),
                           ],
                         ),
                       ),
-                    );
+                    ).animate().fadeIn().slideY(begin: 0.1);
                   },
                 );
               }),
-              const SizedBox(height: 24),
+              const SizedBox(height: 32),
             ],
 
             // 3. Offer a Commute Form
-            const Text('Publish a New Offer', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: primaryColor)),
-            const SizedBox(height: 12),
+            const Text('Publish a New Offer', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: primaryColor)),
+            const SizedBox(height: 16),
             Card(
               child: Padding(
-                padding: const EdgeInsets.all(20.0),
+                padding: const EdgeInsets.all(24.0),
                 child: Form(
                   key: _formKey,
                   child: Column(
@@ -430,9 +504,10 @@ class _RiderDashboardState extends State<RiderDashboard> {
                       // Origin
                       DropdownButtonFormField<String>(
                         value: _origin,
-                        decoration: const InputDecoration(
+                        decoration: InputDecoration(
                           labelText: 'Starting Hub',
-                          prefixIcon: Icon(Icons.my_location, color: primaryColor, size: 20),
+                          prefixIcon: const Icon(Icons.trip_origin, color: accentColor, size: 20),
+                          fillColor: const Color(0xFFF9FAFB),
                         ),
                         items: _hubs.keys.map((h) => DropdownMenuItem(value: h, child: Text(h))).toList(),
                         onChanged: (val) => setState(() => _origin = val!),
@@ -442,17 +517,18 @@ class _RiderDashboardState extends State<RiderDashboard> {
                       // Destination
                       DropdownButtonFormField<String>(
                         value: _destination,
-                        decoration: const InputDecoration(
+                        decoration: InputDecoration(
                           labelText: 'Destination Hub',
-                          prefixIcon: Icon(Icons.location_on_outlined, color: primaryColor, size: 20),
+                          prefixIcon: const Icon(Icons.location_on, color: primaryColor, size: 20),
+                          fillColor: const Color(0xFFF9FAFB),
                         ),
                         items: _hubs.keys.map((h) => DropdownMenuItem(value: h, child: Text(h))).toList(),
                         onChanged: (val) => setState(() => _destination = val!),
                       ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 24),
 
                       // Time Selector Card
-                      InkWell(
+                      GestureDetector(
                         onTap: () async {
                           final date = await showDatePicker(
                             context: context,
@@ -475,22 +551,26 @@ class _RiderDashboardState extends State<RiderDashboard> {
                         child: Container(
                           padding: const EdgeInsets.all(16),
                           decoration: BoxDecoration(
-                            color: Colors.grey.shade50,
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: Colors.grey.shade200),
+                            color: const Color(0xFFF9FAFB),
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: const Color(0xFFEAECF0)),
                           ),
                           child: Row(
                             children: [
-                              const Icon(Icons.access_time, color: primaryColor),
+                              Container(
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(8), border: Border.all(color: const Color(0xFFEAECF0))),
+                                child: const Icon(Icons.access_time, color: Color(0xFF475467)),
+                              ),
                               const SizedBox(width: 16),
                               Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  const Text('Selected Departure Time', style: TextStyle(color: Color(0xFF64748B), fontSize: 11)),
-                                  const SizedBox(height: 2),
+                                  const Text('Departure Time', style: TextStyle(color: Color(0xFF667085), fontSize: 13, fontWeight: FontWeight.w500)),
+                                  const SizedBox(height: 4),
                                   Text(
-                                    DateFormat('yyyy-MM-dd | hh:mm a').format(_departureTime),
-                                    style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF1E293B)),
+                                    DateFormat('MMM dd, yyyy  •  hh:mm a').format(_departureTime),
+                                    style: const TextStyle(fontWeight: FontWeight.bold, color: primaryColor, fontSize: 15),
                                   ),
                                 ],
                               )
@@ -498,14 +578,14 @@ class _RiderDashboardState extends State<RiderDashboard> {
                           ),
                         ),
                       ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 24),
 
                       // Segmented Vehicle Type Cards
                       const Align(
                         alignment: Alignment.centerLeft,
                         child: Padding(
-                          padding: EdgeInsets.only(bottom: 8.0, left: 4),
-                          child: Text('Vehicle Category', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF1E293B))),
+                          padding: EdgeInsets.only(bottom: 12.0, left: 4),
+                          child: Text('Vehicle Category', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Color(0xFF344054))),
                         ),
                       ),
                       Row(
@@ -515,15 +595,16 @@ class _RiderDashboardState extends State<RiderDashboard> {
                           Expanded(child: _buildVehicleTab('Car', Icons.directions_car)),
                         ],
                       ),
-                      const SizedBox(height: 20),
+                      const SizedBox(height: 24),
 
                       // Seats selector
                       if (_vehicleType == 'Car')
                         DropdownButtonFormField<int>(
                           value: _availableSeats,
-                          decoration: const InputDecoration(
-                            labelText: 'Vacant Seats',
-                            prefixIcon: Icon(Icons.event_seat_outlined, color: primaryColor, size: 20),
+                          decoration: InputDecoration(
+                            labelText: 'Available Seats',
+                            prefixIcon: const Icon(Icons.event_seat_outlined, color: primaryColor, size: 20),
+                            fillColor: const Color(0xFFF9FAFB),
                           ),
                           items: const [
                             DropdownMenuItem(value: 1, child: Text('1 seat')),
@@ -532,69 +613,65 @@ class _RiderDashboardState extends State<RiderDashboard> {
                             DropdownMenuItem(value: 4, child: Text('4 seats')),
                           ],
                           onChanged: (val) => setState(() => _availableSeats = val!),
-                        )
+                        ).animate().fadeIn()
                       else
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
                           decoration: BoxDecoration(
-                            color: Colors.teal.shade50.withOpacity(0.2),
-                            border: Border.all(color: Colors.teal.shade100),
-                            borderRadius: BorderRadius.circular(12),
+                            color: const Color(0xFFEFF8FF),
+                            border: Border.all(color: const Color(0xFFD1E9FF)),
+                            borderRadius: BorderRadius.circular(16),
                           ),
                           child: const Row(
                             children: [
-                              Icon(Icons.info_outline, color: primaryColor, size: 20),
+                              Icon(Icons.info_outline, color: Color(0xFF175CD3), size: 20),
                               SizedBox(width: 12),
                               Expanded(
                                 child: Text(
-                                  'Bike offered commutes are capped at 1 passenger seat.',
-                                  style: TextStyle(color: primaryColor, fontSize: 12, fontWeight: FontWeight.w500),
+                                  'Bike commutes are limited to 1 passenger.',
+                                  style: TextStyle(color: Color(0xFF175CD3), fontSize: 14, fontWeight: FontWeight.w500),
                                 ),
                               )
                             ],
                           ),
-                        ),
-                      const SizedBox(height: 16),
+                        ).animate().fadeIn(),
+                      const SizedBox(height: 20),
 
                       // Helmet Switch
                       if (_vehicleType == 'Bike')
                         Container(
                           decoration: BoxDecoration(
-                            color: Colors.grey.shade50,
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: Colors.grey.shade200),
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: const Color(0xFFEAECF0)),
                           ),
                           child: SwitchListTile(
-                            title: const Text('Provide Secondary Helmet?', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF1E293B))),
-                            subtitle: const Text('DIU policy requires helmets for passenger insurance', style: TextStyle(fontSize: 11)),
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                            title: const Text('Provide spare helmet?', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15, color: primaryColor)),
+                            subtitle: const Text('Campus policy requires helmets for passenger safety', style: TextStyle(fontSize: 13, color: Color(0xFF667085))),
                             value: _helmetProvided,
-                            activeColor: primaryColor,
+                            activeColor: accentColor,
                             onChanged: (val) => setState(() => _helmetProvided = val),
                           ),
-                        ),
-                      const SizedBox(height: 24),
+                        ).animate().fadeIn(),
+                      const SizedBox(height: 32),
 
                       // Submit button
                       SizedBox(
                         width: double.infinity,
-                        height: 50,
+                        height: 56,
                         child: ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: primaryColor,
-                            foregroundColor: Colors.white,
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                          ),
                           onPressed: rideProvider.isLoading ? null : _submitOffer,
                           child: rideProvider.isLoading
-                              ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                              : const Text('Publish Commute Offer', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
+                              ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 3))
+                              : const Text('Publish Commute Offer'),
                         ),
                       )
                     ],
                   ),
                 ),
               ),
-            )
+            ).animate().fadeIn(delay: 200.ms).slideY(begin: 0.1),
           ],
         ),
       ),
@@ -614,37 +691,45 @@ class _RiderDashboardState extends State<RiderDashboard> {
 
   Widget _buildVehicleTab(String vehicle, IconData icon) {
     final isSelected = _vehicleType == vehicle;
-    const primaryColor = Color(0xFF0F5132);
+    const primaryColor = Color(0xFF101828);
 
-    return InkWell(
+    return GestureDetector(
       onTap: () {
         setState(() {
           _vehicleType = vehicle;
           _availableSeats = _vehicleType == 'Bike' ? 1 : 3;
         });
       },
-      borderRadius: BorderRadius.circular(12),
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 14),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        curve: Curves.easeInOut,
+        padding: const EdgeInsets.symmetric(vertical: 16),
         decoration: BoxDecoration(
-          color: isSelected ? primaryColor.withOpacity(0.08) : Colors.white,
+          color: isSelected ? primaryColor : Colors.white,
           border: Border.all(
-            color: isSelected ? primaryColor : Colors.grey.shade200,
-            width: isSelected ? 1.5 : 1,
+            color: isSelected ? primaryColor : const Color(0xFFEAECF0),
+            width: isSelected ? 2 : 1,
           ),
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: isSelected ? [
+            BoxShadow(
+              color: primaryColor.withOpacity(0.2),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            )
+          ] : [],
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, color: isSelected ? primaryColor : Colors.grey.shade600, size: 20),
-            const SizedBox(width: 8),
+            Icon(icon, color: isSelected ? Colors.white : const Color(0xFF667085), size: 22),
+            const SizedBox(width: 10),
             Text(
               vehicle,
               style: TextStyle(
-                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                color: isSelected ? primaryColor : Colors.grey.shade700,
-                fontSize: 13
+                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                color: isSelected ? Colors.white : const Color(0xFF344054),
+                fontSize: 15
               ),
             )
           ],

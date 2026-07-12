@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'providers/auth_provider.dart';
 import 'providers/ride_provider.dart';
 import 'screens/login_screen.dart';
@@ -16,10 +17,12 @@ class CoRideApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Curated DIU Premium Smart City Color Palette
-    const primaryColor = Color(0xFF0F5132); // DIU Dark Forest Green
-    const secondaryColor = Color(0xFF00B4D8); // Eye-catching Vibrant Cyan
-    const darkSlate = Color(0xFF1E293B); // Navy Slate for Primary Text
+    // Premium Minimalist Smart City Color Palette
+    const primaryColor = Color(0xFF101828); // Deep sleek charcoal for a premium feel
+    const secondaryColor = Color(0xFF027A48); // Modern sleek emerald (retained some DIU spirit)
+    const accentColor = Color(0xFF2E90FA); // Slick modern blue for highlights
+    const darkSlate = Color(0xFF1D2939); // Slate for Text
+    const backgroundColor = Color(0xFFF9FAFB); // Ultra-clean Off-White
 
     return MultiProvider(
       providers: [
@@ -31,51 +34,72 @@ class CoRideApp extends StatelessWidget {
         debugShowCheckedModeBanner: false,
         theme: ThemeData(
           useMaterial3: true,
+          textTheme: GoogleFonts.interTextTheme(Theme.of(context).textTheme).apply(
+            bodyColor: darkSlate,
+            displayColor: darkSlate,
+          ),
           colorScheme: ColorScheme.fromSeed(
             seedColor: primaryColor,
             primary: primaryColor,
             secondary: secondaryColor,
-            tertiary: darkSlate,
-            background: const Color(0xFFF8F9FA), // Sleek Google Off-White
+            tertiary: accentColor,
+            background: backgroundColor,
             surface: Colors.white,
           ),
+          scaffoldBackgroundColor: backgroundColor,
           cardTheme: CardThemeData(
-            elevation: 0,
+            elevation: 8, // Softer, more premium shadow
+            shadowColor: Colors.black.withOpacity(0.04),
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-              side: BorderSide(color: Colors.grey.shade200, width: 1),
+              borderRadius: BorderRadius.circular(24), // More rounded corners
             ),
             color: Colors.white,
+            surfaceTintColor: Colors.transparent, // Avoid material 3 purple tinting
           ),
           inputDecorationTheme: InputDecorationTheme(
             filled: true,
-            fillColor: Colors.grey.shade50,
+            fillColor: Colors.white,
+            contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
             border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: Colors.grey.shade300),
+              borderRadius: BorderRadius.circular(16),
+              borderSide: BorderSide.none,
             ),
             enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: Colors.grey.shade200),
+              borderRadius: BorderRadius.circular(16),
+              borderSide: BorderSide(color: Colors.grey.shade200, width: 1),
             ),
             focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(16),
               borderSide: const BorderSide(color: primaryColor, width: 1.5),
             ),
-            labelStyle: const TextStyle(color: darkSlate, fontWeight: FontWeight.w500),
+            errorBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(16),
+              borderSide: const BorderSide(color: Colors.redAccent, width: 1),
+            ),
+            focusedErrorBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(16),
+              borderSide: const BorderSide(color: Colors.redAccent, width: 1.5),
+            ),
+            labelStyle: const TextStyle(color: Color(0xFF667085), fontWeight: FontWeight.w500, fontSize: 14),
+            floatingLabelStyle: const TextStyle(color: primaryColor, fontWeight: FontWeight.w600),
           ),
           elevatedButtonTheme: ElevatedButtonThemeData(
             style: ElevatedButton.styleFrom(
               elevation: 0,
-              padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 24),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              backgroundColor: primaryColor,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              textStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
             ),
           ),
-          textTheme: const TextTheme(
-            headlineMedium: TextStyle(color: darkSlate, fontWeight: FontWeight.bold, fontSize: 26),
-            titleLarge: TextStyle(color: darkSlate, fontWeight: FontWeight.w600, fontSize: 18),
-            bodyLarge: TextStyle(color: darkSlate, fontSize: 15),
-            bodyMedium: TextStyle(color: Color(0xFF64748B), fontSize: 14),
+          outlinedButtonTheme: OutlinedButtonThemeData(
+            style: OutlinedButton.styleFrom(
+              padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              side: const BorderSide(color: Color(0xFFEAECF0), width: 1.5),
+              textStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
+            ),
           ),
         ),
         home: const OnboardingScreen(),
@@ -115,14 +139,14 @@ class _AuthWrapperState extends State<AuthWrapper> {
                 width: 48,
                 height: 48,
                 child: CircularProgressIndicator(
-                  strokeWidth: 3.5,
-                  valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF0F5132)),
+                  strokeWidth: 3,
+                  valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF101828)),
                 ),
               ),
-              SizedBox(height: 20),
+              SizedBox(height: 24),
               Text(
-                'Connecting to CoRide...',
-                style: TextStyle(color: Color(0xFF64748B), fontWeight: FontWeight.w500, fontSize: 14),
+                'Authenticating...',
+                style: TextStyle(color: Color(0xFF667085), fontWeight: FontWeight.w500, fontSize: 14, letterSpacing: 0.5),
               ),
             ],
           ),
@@ -152,41 +176,59 @@ class _AppHubState extends State<AppHub> {
 
   Widget _buildFloatingNavItem(int index, IconData outlineIcon, IconData filledIcon, String label) {
     final isSelected = _selectedIndex == index;
-    const primaryColor = Color(0xFF0F5132);
+    const primaryColor = Color(0xFF101828);
 
-    return InkWell(
+    return GestureDetector(
       onTap: () {
         setState(() {
           _selectedIndex = index;
         });
       },
-      borderRadius: BorderRadius.circular(100),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 300),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        curve: Curves.easeOutCubic,
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
         decoration: BoxDecoration(
           color: isSelected ? primaryColor : Colors.transparent,
           borderRadius: BorderRadius.circular(100),
+          boxShadow: isSelected ? [
+            BoxShadow(
+              color: primaryColor.withOpacity(0.3),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            )
+          ] : [],
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              isSelected ? filledIcon : outlineIcon,
-              color: isSelected ? Colors.white : const Color(0xFF64748B),
-              size: 20,
-            ),
-            if (isSelected) ...[
-              const SizedBox(width: 8),
-              Text(
-                label,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 13,
-                ),
+            AnimatedSwitcher(
+              duration: const Duration(milliseconds: 200),
+              transitionBuilder: (Widget child, Animation<double> animation) {
+                return ScaleTransition(scale: animation, child: child);
+              },
+              child: Icon(
+                isSelected ? filledIcon : outlineIcon,
+                key: ValueKey<bool>(isSelected),
+                color: isSelected ? Colors.white : const Color(0xFF98A2B3),
+                size: 22,
               ),
-            ],
+            ),
+            AnimatedSize(
+              duration: const Duration(milliseconds: 300),
+              curve: Curves.easeInOut,
+              child: isSelected ? Padding(
+                padding: const EdgeInsets.only(left: 8.0),
+                child: Text(
+                  label,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 14,
+                  ),
+                ),
+              ) : const SizedBox.shrink(),
+            ),
           ],
         ),
       ),
@@ -203,26 +245,28 @@ class _AppHubState extends State<AppHub> {
       ),
       bottomNavigationBar: Container(
         color: Colors.transparent,
-        padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+        padding: const EdgeInsets.fromLTRB(24, 0, 24, 32),
         child: Container(
-          height: 64,
+          height: 72, // Slightly taller for premium feel
+          padding: const EdgeInsets.symmetric(horizontal: 8),
           decoration: BoxDecoration(
-            color: const Color(0xFFF1F5F9), // Light grey slate
+            color: Colors.white.withOpacity(0.9), // Glassmorphism base
             borderRadius: BorderRadius.circular(100),
-            border: Border.all(color: Colors.white.withOpacity(0.5), width: 1.5),
+            border: Border.all(color: Colors.white, width: 2),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.04),
-                blurRadius: 10,
-                offset: const Offset(0, 4),
+                color: Colors.black.withOpacity(0.05),
+                blurRadius: 24,
+                spreadRadius: 0,
+                offset: const Offset(0, 8),
               ),
             ],
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              _buildFloatingNavItem(0, Icons.home_outlined, Icons.home, 'Home'),
-              _buildFloatingNavItem(1, Icons.add_road_outlined, Icons.add_road, 'Offer'),
+              _buildFloatingNavItem(0, Icons.home_outlined, Icons.home, 'Commute'),
+              _buildFloatingNavItem(1, Icons.add_circle_outline, Icons.add_circle, 'Offer'),
               _buildFloatingNavItem(2, Icons.person_outline, Icons.person, 'Profile'),
             ],
           ),
@@ -240,150 +284,172 @@ class ProfileScreen extends StatelessWidget {
     final authProvider = Provider.of<AuthProvider>(context);
     final user = authProvider.user;
 
-    const primaryColor = Color(0xFF0F5132);
-    const accentColor = Color(0xFF00B4D8);
+    const primaryColor = Color(0xFF101828);
+    const accentColor = Color(0xFF2E90FA);
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FA),
       body: SingleChildScrollView(
+        padding: const EdgeInsets.only(bottom: 120),
         child: Column(
           children: [
-            // Header Profile Banner
-            Stack(
-              clipBehavior: Clip.none,
-              alignment: Alignment.center,
-              children: [
-                Container(
-                  height: 180,
-                  width: double.infinity,
-                  decoration: const BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [primaryColor, Color(0xFF1E5E41)],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                    borderRadius: BorderRadius.only(
-                      bottomLeft: Radius.circular(32),
-                      bottomRight: Radius.circular(32),
-                    ),
-                  ),
-                ),
-                Positioned(
-                  top: 120,
-                  child: Container(
-                    padding: const EdgeInsets.all(4),
-                    decoration: const BoxDecoration(
-                      color: Colors.white,
-                      shape: BoxShape.circle,
-                    ),
-                    child: CircleAvatar(
-                      radius: 54,
-                      backgroundColor: primaryColor.withOpacity(0.08),
-                      child: const Icon(Icons.school, size: 48, color: primaryColor),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 64),
-
-            // Profile info
-            Text(
-              user?['name'] ?? 'DIU Commuter',
-              style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Color(0xFF1E293B)),
-            ),
-            const SizedBox(height: 4),
+            // Modern Header Profile Area
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-              decoration: BoxDecoration(
-                color: accentColor.withOpacity(0.12),
-                borderRadius: BorderRadius.circular(100),
+              padding: const EdgeInsets.only(top: 80, bottom: 40, left: 24, right: 24),
+              width: double.infinity,
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.only(
+                  bottomLeft: Radius.circular(40),
+                  bottomRight: Radius.circular(40),
+                ),
               ),
-              child: Text(
-                user?['email'] ?? 'student@diu.edu.bd',
-                style: const TextStyle(fontSize: 12, color: accentColor, fontWeight: FontWeight.w600),
+              child: Column(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(color: const Color(0xFFEAECF0), width: 2),
+                    ),
+                    child: const CircleAvatar(
+                      radius: 50,
+                      backgroundColor: Color(0xFFF2F4F7),
+                      child: Icon(Icons.person_outline, size: 48, color: Color(0xFF475467)),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  Text(
+                    user?['name'] ?? 'DIU Commuter',
+                    style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: primaryColor, letterSpacing: -0.5),
+                  ),
+                  const SizedBox(height: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFEFF8FF),
+                      borderRadius: BorderRadius.circular(100),
+                    ),
+                    child: Text(
+                      user?['email'] ?? 'student@diu.edu.bd',
+                      style: const TextStyle(fontSize: 14, color: Color(0xFF175CD3), fontWeight: FontWeight.w600),
+                    ),
+                  ),
+                ],
               ),
             ),
             const SizedBox(height: 24),
 
             // Stats row
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Column(
-                          children: [
-                            const Text('Trust Score', style: TextStyle(color: Color(0xFF64748B), fontSize: 13)),
-                            const SizedBox(height: 4),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Text('${user?['rating'] ?? '5.0'} ', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Color(0xFF1E293B))),
-                                const Icon(Icons.star, color: Colors.amber, size: 18),
-                              ],
-                            ),
-                          ],
-                        ),
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Container(
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(24),
+                        border: Border.all(color: const Color(0xFFEAECF0)),
                       ),
-                      Container(width: 1, height: 40, color: Colors.grey.shade200),
-                      Expanded(
-                        child: Column(
-                          children: [
-                            const Text('Role', style: TextStyle(color: Color(0xFF64748B), fontSize: 13)),
-                            const SizedBox(height: 4),
-                            Text(
-                              user?['role'] ?? 'Both',
-                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: primaryColor),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFFEF0C7),
+                              borderRadius: BorderRadius.circular(12),
                             ),
-                          ],
-                        ),
+                            child: const Icon(Icons.star_rounded, color: Color(0xFFDC6803), size: 20),
+                          ),
+                          const SizedBox(height: 16),
+                          Text('${user?['rating'] ?? '5.0'}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 24, color: primaryColor)),
+                          const Text('Trust Score', style: TextStyle(color: Color(0xFF475467), fontSize: 13, fontWeight: FontWeight.w500)),
+                        ],
                       ),
-                    ],
+                    ),
                   ),
-                ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Container(
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(24),
+                        border: Border.all(color: const Color(0xFFEAECF0)),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFECFDF3),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: const Icon(Icons.verified_user_rounded, color: Color(0xFF027A48), size: 20),
+                          ),
+                          const SizedBox(height: 16),
+                          Text(user?['role'] ?? 'Both', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 24, color: primaryColor)),
+                          const Text('Account Role', style: TextStyle(color: Color(0xFF475467), fontSize: 13, fontWeight: FontWeight.w500)),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 32),
 
             // Profile list items
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
+              padding: const EdgeInsets.symmetric(horizontal: 24),
               child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildProfileTile(
-                    icon: Icons.badge_outlined,
-                    title: 'Academic DIU ID',
-                    value: user?['student_id'] ?? 'Not set',
+                  const Text('Personal Info', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: primaryColor)),
+                  const SizedBox(height: 16),
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(24),
+                      border: Border.all(color: const Color(0xFFEAECF0)),
+                    ),
+                    child: Column(
+                      children: [
+                        _buildProfileTile(
+                          icon: Icons.badge_outlined,
+                          title: 'Academic ID',
+                          value: user?['student_id'] ?? 'Not set',
+                        ),
+                        const Divider(height: 1, color: Color(0xFFEAECF0)),
+                        _buildProfileTile(
+                          icon: Icons.phone_android_outlined,
+                          title: 'Phone Contact',
+                          value: user?['phone'] ?? 'Not set',
+                        ),
+                      ],
+                    ),
                   ),
-                  const SizedBox(height: 12),
-                  _buildProfileTile(
-                    icon: Icons.phone_android_outlined,
-                    title: 'Phone Contact',
-                    value: user?['phone'] ?? 'Not set',
-                  ),
-                  const SizedBox(height: 32),
+                  const SizedBox(height: 40),
                   
                   // Logout Button
                   SizedBox(
                     width: double.infinity,
-                    height: 50,
-                    child: ElevatedButton.icon(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.red.shade50,
-                        foregroundColor: Colors.red.shade700,
-                        side: BorderSide(color: Colors.red.shade100, width: 1),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    height: 56,
+                    child: OutlinedButton.icon(
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: const Color(0xFFD92D20),
+                        side: const BorderSide(color: Color(0xFFFDA29B), width: 1.5),
+                        backgroundColor: const Color(0xFFFEF3F2),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                       ),
                       onPressed: () => authProvider.logout(),
-                      icon: const Icon(Icons.logout),
-                      label: const Text('Logout Session', style: TextStyle(fontWeight: FontWeight.w600)),
+                      icon: const Icon(Icons.logout_rounded),
+                      label: const Text('Sign out', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16)),
                     ),
                   ),
-                  const SizedBox(height: 24),
                 ],
               ),
             )
@@ -394,30 +460,25 @@ class ProfileScreen extends StatelessWidget {
   }
 
   Widget _buildProfileTile({required IconData icon, required String title, required String value}) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey.shade100),
-      ),
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
       child: Row(
         children: [
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: const Color(0xFF0F5132).withOpacity(0.06),
-              shape: BoxShape.circle,
+              color: const Color(0xFFF2F4F7),
+              borderRadius: BorderRadius.circular(12),
             ),
-            child: Icon(icon, color: const Color(0xFF0F5132), size: 20),
+            child: Icon(icon, color: const Color(0xFF475467), size: 22),
           ),
           const SizedBox(width: 16),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(title, style: const TextStyle(color: Color(0xFF64748B), fontSize: 12)),
-              const SizedBox(height: 2),
-              Text(value, style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF1E293B), fontSize: 14)),
+              Text(title, style: const TextStyle(color: Color(0xFF475467), fontSize: 13, fontWeight: FontWeight.w500)),
+              const SizedBox(height: 4),
+              Text(value, style: const TextStyle(fontWeight: FontWeight.w600, color: Color(0xFF101828), fontSize: 16)),
             ],
           )
         ],
