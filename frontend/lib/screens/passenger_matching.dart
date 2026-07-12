@@ -54,7 +54,6 @@ class _PassengerMatchingState extends State<PassengerMatching> {
     super.dispose();
   }
 
-  // Start tracking accepted ride coordinates
   void _startTrackingRide(String rideId) {
     _socketService.joinRideRoom(rideId);
     
@@ -63,7 +62,6 @@ class _PassengerMatchingState extends State<PassengerMatching> {
       _rideStatus = 'Active';
     });
 
-    // Listen to real-time coordinates
     _locationSub = _socketService.locationStream.listen((data) {
       if (data['lat'] != null && data['lng'] != null) {
         setState(() {
@@ -74,7 +72,6 @@ class _PassengerMatchingState extends State<PassengerMatching> {
       }
     });
 
-    // Listen to ride lifecycle status updates (e.g. Completed)
     _statusSub = _socketService.statusStream.listen((data) {
       if (data['status'] != null) {
         setState(() {
@@ -100,7 +97,10 @@ class _PassengerMatchingState extends State<PassengerMatching> {
     final success = await Provider.of<RideProvider>(context, listen: false).requestToJoinRide(rideId);
     if (success && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Join request sent! Waiting for rider approval.')),
+        const SnackBar(
+          content: Text('Join request sent! Waiting for rider approval.'),
+          behavior: SnackBarBehavior.floating,
+        ),
       );
       Provider.of<RideProvider>(context, listen: false).fetchActiveRides();
     }
@@ -110,7 +110,10 @@ class _PassengerMatchingState extends State<PassengerMatching> {
     final success = await Provider.of<RideProvider>(context, listen: false).cancelRideRequest(rideId);
     if (success && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Ride request cancelled successfully.')),
+        const SnackBar(
+          content: Text('Ride request cancelled successfully.'),
+          behavior: SnackBarBehavior.floating,
+        ),
       );
       Provider.of<RideProvider>(context, listen: false).fetchActiveRides();
     }
@@ -122,95 +125,101 @@ class _PassengerMatchingState extends State<PassengerMatching> {
     final user = Provider.of<AuthProvider>(context).user;
 
     const primaryColor = Color(0xFF0F5132); // DIU Green
+    const accentColor = Color(0xFF00B4D8);
 
     return Scaffold(
+      backgroundColor: const Color(0xFFF8F9FA),
       appBar: AppBar(
-        title: const Text('Find Commute Matches', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        title: const Text('Find Commutes', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 20)),
         backgroundColor: primaryColor,
-        iconTheme: const IconThemeData(color: Colors.white),
+        elevation: 0,
       ),
       body: Column(
         children: [
-          // Embankment offline safety warning indicator
+          // Embankment offline warning indicator
           if (!_socketOnline)
             Container(
-              color: Colors.red[800],
+              color: Colors.red.shade700,
               width: double.infinity,
-              padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+              padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
               child: const Row(
                 children: [
-                  Icon(Icons.wifi_off, color: Colors.white, size: 20),
+                  Icon(Icons.wifi_off, color: Colors.white, size: 18),
                   SizedBox(width: 12),
                   Expanded(
                     child: Text(
-                      'Connection drops along Embankment. Attempting to reconnect...',
-                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
+                      'Embankment signal weak. Automatically reconnecting...',
+                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12),
                     ),
                   ),
                 ],
               ),
             ),
 
-          // Real-time passenger tracking overlay
+          // Live Telemetry GPS Tracking Console
           if (_isTracking)
-            Card(
-              margin: const EdgeInsets.all(12),
-              color: Colors.green[50],
-              elevation: 4,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  children: [
-                    Row(
-                      children: [
-                        const Icon(Icons.location_on, color: primaryColor, size: 32),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text('Tracking Live Commute', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: primaryColor)),
-                              Text('Ride Status: $_rideStatus', style: const TextStyle(fontWeight: FontWeight.bold)),
-                            ],
-                          ),
+            Container(
+              margin: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: const Color(0xFF1E293B), // Dark Slate
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.08),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  )
+                ]
+              ),
+              child: Column(
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: Colors.green.withOpacity(0.15),
+                          shape: BoxShape.circle,
                         ),
-                        ElevatedButton(
-                          style: ElevatedButton.styleFrom(backgroundColor: Colors.grey[700], foregroundColor: Colors.white),
-                          onPressed: _stopTracking,
-                          child: const Text('Stop Map'),
-                        )
-                      ],
-                    ),
-                    const Divider(),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceAround,
-                      children: [
-                        Column(
+                        child: const Icon(Icons.gps_fixed, color: Colors.green, size: 20),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text('Latitude', style: TextStyle(color: Colors.grey)),
-                            Text(_currentLat.toStringAsFixed(5), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                            const Text('LIVE COMMUTE MAP SYNC', style: TextStyle(color: accentColor, fontWeight: FontWeight.bold, fontSize: 11, letterSpacing: 0.5)),
+                            Text('Driver Status: $_rideStatus', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)),
                           ],
                         ),
-                        Column(
-                          children: [
-                            const Text('Longitude', style: TextStyle(color: Colors.grey)),
-                            Text(_currentLng.toStringAsFixed(5), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                          ],
+                      ),
+                      ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.white.withOpacity(0.08),
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                         ),
-                        Column(
-                          children: [
-                            const Text('Speed', style: TextStyle(color: Colors.grey)),
-                            Text('${_currentSpeed.toStringAsFixed(1)} km/h', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                          ],
-                        ),
-                      ],
-                    )
-                  ],
-                ),
+                        onPressed: _stopTracking,
+                        child: const Text('Close Console', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                      )
+                    ],
+                  ),
+                  const Divider(color: Colors.white12, height: 24),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceAround,
+                    children: [
+                      _buildTrackerMetric('LATITUDE', _currentLat.toStringAsFixed(5)),
+                      _buildTrackerMetric('LONGITUDE', _currentLng.toStringAsFixed(5)),
+                      _buildTrackerMetric('SPEED', '${_currentSpeed.toStringAsFixed(1)} km/h'),
+                    ],
+                  )
+                ],
               ),
             ),
 
+          // Matches List
           Expanded(
             child: RefreshIndicator(
               onRefresh: () => rideProvider.fetchActiveRides(),
@@ -219,18 +228,19 @@ class _PassengerMatchingState extends State<PassengerMatching> {
                   : rideProvider.activeRides.isEmpty
                       ? ListView(
                           children: const [
-                            SizedBox(height: 100),
-                            Center(child: Text('No active commutes matching now.', style: TextStyle(color: Colors.grey))),
-                            Center(child: Text('Pull down to refresh.', style: TextStyle(color: Colors.grey, fontSize: 12))),
+                            SizedBox(height: 120),
+                            Center(child: Icon(Icons.commute_outlined, size: 64, color: Colors.grey)),
+                            SizedBox(height: 16),
+                            Center(child: Text('No active commutes matching currently.', style: TextStyle(color: Color(0xFF64748B), fontWeight: FontWeight.bold))),
+                            Center(child: Text('Pull down to search again.', style: TextStyle(color: Colors.grey, fontSize: 12))),
                           ],
                         )
                       : ListView.builder(
-                          padding: const EdgeInsets.all(12),
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                           itemCount: rideProvider.activeRides.length,
                           itemBuilder: (ctx, i) {
                             final ride = rideProvider.activeRides[i];
                             
-                            // Prevent passengers listing their own ride offers
                             if (ride['rider_id'] == user?['id']) {
                               return const SizedBox.shrink();
                             }
@@ -238,37 +248,77 @@ class _PassengerMatchingState extends State<PassengerMatching> {
                             final timeStr = DateFormat('hh:mm a').format(DateTime.parse(ride['departure_time']));
 
                             return Card(
-                              margin: const EdgeInsets.only(bottom: 12),
-                              elevation: 2,
+                              margin: const EdgeInsets.only(bottom: 16),
                               child: Padding(
-                                padding: const EdgeInsets.all(14.0),
+                                padding: const EdgeInsets.all(16.0),
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
+                                    // Route & Fare Header
                                     Row(
                                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                       children: [
-                                        Text('${ride['origin_name']} ➔ Hub', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
-                                        Text(
-                                          '${ride['estimated_fare']} BDT',
-                                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: primaryColor),
+                                        // Visual Route Indicators
+                                        Expanded(
+                                          child: Row(
+                                            children: [
+                                              const Icon(Icons.adjust, color: accentColor, size: 18),
+                                              const SizedBox(width: 6),
+                                              Expanded(
+                                                child: Text(
+                                                  '${ride['origin_name']} ➔ ${ride['destination_name']}',
+                                                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Color(0xFF1E293B)),
+                                                  overflow: TextOverflow.ellipsis,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                        const SizedBox(width: 8),
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                          decoration: BoxDecoration(
+                                            color: primaryColor.withOpacity(0.08),
+                                            borderRadius: BorderRadius.circular(100),
+                                          ),
+                                          child: Text(
+                                            '${ride['estimated_fare']} BDT',
+                                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: primaryColor),
+                                          ),
                                         ),
                                       ],
                                     ),
-                                    Text('Destination: ${ride['destination_name']}', style: const TextStyle(fontSize: 13, color: Colors.grey)),
-                                    const SizedBox(height: 8),
+                                    const SizedBox(height: 12),
+                                    
+                                    // Rider profile & departure time
                                     Row(
                                       children: [
-                                        const Icon(Icons.person, size: 16, color: Colors.grey),
-                                        const SizedBox(width: 4),
-                                        Text('${ride['rider_name']} (${ride['rider_rating']}★)'),
+                                        CircleAvatar(
+                                          backgroundColor: primaryColor.withOpacity(0.06),
+                                          radius: 14,
+                                          child: const Icon(Icons.person_outline, size: 14, color: primaryColor),
+                                        ),
+                                        const SizedBox(width: 8),
+                                        Text('${ride['rider_name']} ', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                          decoration: BoxDecoration(color: Colors.amber.shade50, borderRadius: BorderRadius.circular(6)),
+                                          child: Row(
+                                            children: [
+                                              const Icon(Icons.star, color: Colors.amber, size: 12),
+                                              Text(' ${ride['rider_rating']}', style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
+                                            ],
+                                          ),
+                                        ),
                                         const Spacer(),
-                                        const Icon(Icons.access_time, size: 16, color: Colors.grey),
+                                        const Icon(Icons.access_time, size: 14, color: Colors.grey),
                                         const SizedBox(width: 4),
-                                        Text(timeStr),
+                                        Text(timeStr, style: const TextStyle(color: Colors.grey, fontSize: 12, fontWeight: FontWeight.w500)),
                                       ],
                                     ),
-                                    const Divider(),
+                                    const Divider(height: 24),
+
+                                    // Vehicle information
                                     Row(
                                       children: [
                                         Icon(
@@ -276,74 +326,126 @@ class _PassengerMatchingState extends State<PassengerMatching> {
                                           size: 18,
                                           color: primaryColor,
                                         ),
-                                        const SizedBox(width: 6),
-                                        Text('${ride['vehicle_type']} | Seats: ${ride['available_seats']} left'),
+                                        const SizedBox(width: 8),
+                                        Text(
+                                          '${ride['vehicle_type']} | Seats: ${ride['available_seats']} left',
+                                          style: const TextStyle(color: Color(0xFF64748B), fontSize: 12),
+                                        ),
                                         if (ride['vehicle_type'] == 'Bike' && ride['helmet_provided']) ...[
                                           const Spacer(),
-                                          const Icon(Icons.safety_check, size: 18, color: Colors.blue),
-                                          const SizedBox(width: 4),
-                                          const Text('Helmet Provided', style: TextStyle(color: Colors.blue, fontSize: 12)),
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                            decoration: BoxDecoration(color: Colors.teal.shade50, borderRadius: BorderRadius.circular(6)),
+                                            child: const Row(
+                                              children: [
+                                                Icon(Icons.safety_check_outlined, size: 14, color: primaryColor),
+                                                SizedBox(width: 4),
+                                                Text('Helmet Provided', style: TextStyle(color: primaryColor, fontSize: 10, fontWeight: FontWeight.bold)),
+                                              ],
+                                            ),
+                                          ),
                                         ]
                                       ],
                                     ),
-                                    const SizedBox(height: 12),
-                                    const SizedBox(height: 6),
-                                    // Status Badge rendering
+                                    const SizedBox(height: 16),
+
+                                    // Request Status Banner
                                     if (ride['passenger_request_status'] != null)
                                       Padding(
-                                        padding: const EdgeInsets.only(bottom: 8.0),
-                                        child: Row(
-                                          children: [
-                                            const Text('Request Status: ', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-                                            Chip(
-                                              label: Text(ride['passenger_request_status']),
-                                              backgroundColor: ride['passenger_request_status'] == 'Accepted'
-                                                  ? Colors.green[100]
+                                        padding: const EdgeInsets.only(bottom: 12.0),
+                                        child: Container(
+                                          padding: const EdgeInsets.all(12),
+                                          decoration: BoxDecoration(
+                                            color: ride['passenger_request_status'] == 'Accepted'
+                                                ? Colors.green.shade50.withOpacity(0.4)
+                                                : ride['passenger_request_status'] == 'Pending'
+                                                    ? Colors.orange.shade50.withOpacity(0.4)
+                                                    : Colors.red.shade50.withOpacity(0.4),
+                                            borderRadius: BorderRadius.circular(10),
+                                            border: Border.all(
+                                              color: ride['passenger_request_status'] == 'Accepted'
+                                                  ? Colors.green.shade100
                                                   : ride['passenger_request_status'] == 'Pending'
-                                                      ? Colors.orange[100]
-                                                      : Colors.red[100],
+                                                      ? Colors.orange.shade100
+                                                      : Colors.red.shade100,
                                             ),
-                                          ],
+                                          ),
+                                          child: Row(
+                                            children: [
+                                              Icon(
+                                                ride['passenger_request_status'] == 'Accepted'
+                                                    ? Icons.check_circle_outline
+                                                    : ride['passenger_request_status'] == 'Pending'
+                                                        ? Icons.hourglass_empty
+                                                        : Icons.cancel_outlined,
+                                                color: ride['passenger_request_status'] == 'Accepted'
+                                                    ? Colors.green.shade700
+                                                    : ride['passenger_request_status'] == 'Pending'
+                                                        ? Colors.orange.shade700
+                                                        : Colors.red.shade700,
+                                                size: 18,
+                                              ),
+                                              const SizedBox(width: 8),
+                                              Text(
+                                                'Request Status: ${ride['passenger_request_status']}',
+                                                style: TextStyle(
+                                                  fontWeight: FontWeight.bold,
+                                                  fontSize: 12,
+                                                  color: ride['passenger_request_status'] == 'Accepted'
+                                                      ? Colors.green.shade800
+                                                      : ride['passenger_request_status'] == 'Pending'
+                                                          ? Colors.orange.shade800
+                                                          : Colors.red.shade800,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
                                         ),
                                       ),
+
+                                    // Card actions buttons
                                     Row(
                                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                       children: [
-                                        // Trigger live tracking room if user is accepted and rider starts
+                                        // Track Commute
                                         if (ride['status'] == 'Active' && ride['passenger_request_status'] == 'Accepted')
                                           ElevatedButton.icon(
                                             style: ElevatedButton.styleFrom(
-                                              backgroundColor: Colors.amber[800],
+                                              backgroundColor: Colors.amber.shade800,
                                               foregroundColor: Colors.white,
+                                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                                             ),
                                             onPressed: () => _startTrackingRide(ride['id']),
-                                            icon: const Icon(Icons.map),
-                                            label: const Text('Track Commute'),
+                                            icon: const Icon(Icons.navigation, size: 18),
+                                            label: const Text('Track Live', style: TextStyle(fontWeight: FontWeight.bold)),
                                           )
                                         else
                                           const SizedBox.shrink(),
                                           
-                                        // Dynamic action buttons
+                                        // Request Join / Cancel Request
                                         if (ride['passenger_request_status'] == null)
                                           ElevatedButton(
                                             style: ElevatedButton.styleFrom(
                                               backgroundColor: primaryColor,
                                               foregroundColor: Colors.white,
+                                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                                             ),
                                             onPressed: () => _requestJoin(ride['id']),
-                                            child: const Text('Request Join'),
+                                            child: const Text('Request Join', style: TextStyle(fontWeight: FontWeight.bold)),
                                           )
                                         else if (ride['passenger_request_status'] == 'Pending' || ride['passenger_request_status'] == 'Accepted')
                                           ElevatedButton(
                                             style: ElevatedButton.styleFrom(
-                                              backgroundColor: Colors.red[800],
-                                              foregroundColor: Colors.white,
+                                              backgroundColor: Colors.red.shade50,
+                                              foregroundColor: Colors.red.shade700,
+                                              side: BorderSide(color: Colors.red.shade100, width: 1),
+                                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                                             ),
                                             onPressed: () => _cancelRequest(ride['id']),
-                                            child: const Text('Cancel Request'),
+                                            child: const Text('Cancel Request', style: TextStyle(fontWeight: FontWeight.bold)),
                                           )
                                         else
-                                          const SizedBox.shrink(), // Rejected requests can't cancel or rejoin
+                                          const SizedBox.shrink(),
                                       ],
                                     ),
                                   ],
@@ -356,6 +458,16 @@ class _PassengerMatchingState extends State<PassengerMatching> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildTrackerMetric(String label, String val) {
+    return Column(
+      children: [
+        Text(label, style: const TextStyle(color: Color(0xFF64748B), fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 0.5)),
+        const SizedBox(height: 4),
+        Text(val, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
+      ],
     );
   }
 }

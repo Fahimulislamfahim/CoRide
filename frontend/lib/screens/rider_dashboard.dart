@@ -54,7 +54,6 @@ class _RiderDashboardState extends State<RiderDashboard> {
     super.dispose();
   }
 
-  // Handle Hub selection coordinate parsing and database submission
   void _submitOffer() async {
     if (!_formKey.currentState!.validate()) return;
     
@@ -63,7 +62,10 @@ class _RiderDashboardState extends State<RiderDashboard> {
 
     if (_origin == _destination) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Origin and destination hubs cannot be the same.')),
+        const SnackBar(
+          content: Text('Origin and destination hubs cannot be the same.'),
+          behavior: SnackBarBehavior.floating,
+        ),
       );
       return;
     }
@@ -83,13 +85,15 @@ class _RiderDashboardState extends State<RiderDashboard> {
 
     if (success && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Ride offered successfully! Keep checking for passenger requests.')),
+        const SnackBar(
+          content: Text('Ride offered successfully!'),
+          behavior: SnackBarBehavior.floating,
+        ),
       );
       Provider.of<RideProvider>(context, listen: false).fetchActiveRides();
     }
   }
 
-  // GPS Route Simulation
   void _startRideSimulation(String rideId, double startLat, double startLng, double endLat, double endLng) async {
     final success = await Provider.of<RideProvider>(context, listen: false).updateStatus(rideId, 'Active');
     if (!success) return;
@@ -105,7 +109,6 @@ class _RiderDashboardState extends State<RiderDashboard> {
     _socketService.joinRideRoom(rideId);
     _socketService.updateRideStatus(rideId, 'Active');
 
-    // Simulate route in 10 steps towards destination
     _simulationTimer = Timer.periodic(const Duration(seconds: 5), (timer) {
       if (_simStep >= 10) {
         _stopRideSimulation(rideId);
@@ -118,8 +121,7 @@ class _RiderDashboardState extends State<RiderDashboard> {
         _simulatedLng = startLng + (endLng - startLng) * (_simStep / 10.0);
       });
 
-      // Broadcast throttled location to passengers in the room
-      _socketService.updateLocation(rideId, _simulatedLat, _simulatedLng, speed: 45.0);
+      _socketService.updateLocation(rideId, _simulatedLat, _simulatedLng, speed: 48.5);
     });
   }
 
@@ -135,7 +137,10 @@ class _RiderDashboardState extends State<RiderDashboard> {
       });
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Ride completed! Thanks for ridesharing.')),
+          const SnackBar(
+            content: Text('Ride completed! Thanks for ridesharing.'),
+            behavior: SnackBarBehavior.floating,
+          ),
         );
       }
     }
@@ -147,58 +152,104 @@ class _RiderDashboardState extends State<RiderDashboard> {
     final user = Provider.of<AuthProvider>(context).user;
 
     const primaryColor = Color(0xFF0F5132); // DIU Green
+    const accentColor = Color(0xFF00B4D8);
 
-    // Find if user already has an active ride offer
     final userActiveRides = rideProvider.activeRides.where((r) => r['rider_id'] == user?['id']).toList();
     final hasActiveOffer = userActiveRides.isNotEmpty;
 
     return Scaffold(
+      backgroundColor: const Color(0xFFF8F9FA),
       appBar: AppBar(
-        title: const Text('Offer a Ride', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        title: const Text('Rider Dashboard', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 20)),
         backgroundColor: primaryColor,
-        iconTheme: const IconThemeData(color: Colors.white),
+        elevation: 0,
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Simulation banner
-            if (_isSimulating)
-              Card(
-                color: Colors.amber[100],
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                child: Padding(
-                  padding: const EdgeInsets.all(12.0),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.sync, color: Colors.orange),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text('Active Ride Simulation running...', style: TextStyle(fontWeight: FontWeight.bold)),
-                            Text('Current location: (${_simulatedLat.toStringAsFixed(4)}, ${_simulatedLng.toStringAsFixed(4)})'),
-                            Text('Progress: ${(_simStep * 10)}% complete'),
-                          ],
+            // 1. Premium dark-themed GPS simulation console
+            if (_isSimulating) ...[
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF1E293B), // Dark Slate
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.08),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    )
+                  ]
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: accentColor.withOpacity(0.15),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(Icons.navigation, color: accentColor, size: 20),
                         ),
+                        const SizedBox(width: 12),
+                        const Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('LIVE COMMUTE ACTIVE', style: TextStyle(color: accentColor, fontWeight: FontWeight.bold, fontSize: 12, letterSpacing: 0.5)),
+                              Text('Broadcasting GPS signals...', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 15)),
+                            ],
+                          ),
+                        ),
+                        ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.red.shade600,
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                          ),
+                          onPressed: () => _stopRideSimulation(_activeRideId!),
+                          child: const Text('Arrived', style: TextStyle(fontWeight: FontWeight.bold)),
+                        )
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    // Progress Bar
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(10),
+                      child: LinearProgressIndicator(
+                        value: _simStep / 10.0,
+                        backgroundColor: Colors.white.withOpacity(0.08),
+                        valueColor: const AlwaysStoppedAnimation<Color>(accentColor),
+                        minHeight: 8,
                       ),
-                      ElevatedButton(
-                        style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white),
-                        onPressed: () => _stopRideSimulation(_activeRideId!),
-                        child: const Text('Complete'),
-                      )
-                    ],
-                  ),
+                    ),
+                    const SizedBox(height: 16),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        _buildConsoleMetric('LATITUDE', _simulatedLat.toStringAsFixed(5)),
+                        _buildConsoleMetric('LONGITUDE', _simulatedLng.toStringAsFixed(5)),
+                        _buildConsoleMetric('SPEED', '48 km/h'),
+                      ],
+                    )
+                  ],
                 ),
               ),
-            const SizedBox(height: 12),
+              const SizedBox(height: 20),
+            ],
 
-            // Offered Ride Requests Manager (If user offered a ride)
+            // 2. Active Ride Details & Request Monitor
             if (hasActiveOffer) ...[
-              const Text('Your Active Ride Offers', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: primaryColor)),
-              const SizedBox(height: 8),
+              const Text('Active Commutes Offered', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: primaryColor)),
+              const SizedBox(height: 10),
               ...userActiveRides.map((ride) {
                 final rideId = ride['id'];
                 
@@ -207,7 +258,12 @@ class _RiderDashboardState extends State<RiderDashboard> {
                   builder: (context, snapshot) {
                     final details = rideProvider.selectedRideDetails;
                     if (details == null || details['ride']['id'] != rideId) {
-                      return const Card(child: Padding(padding: EdgeInsets.all(16), child: Center(child: CircularProgressIndicator())));
+                      return const Card(
+                        child: Padding(
+                          padding: EdgeInsets.all(24), 
+                          child: Center(child: CircularProgressIndicator())
+                        )
+                      );
                     }
 
                     final requests = details['requests'] as List;
@@ -215,59 +271,100 @@ class _RiderDashboardState extends State<RiderDashboard> {
                     final acceptedRequests = requests.where((req) => req['status'] == 'Accepted').toList();
 
                     return Card(
-                      margin: const EdgeInsets.only(bottom: 16),
-                      elevation: 4,
+                      margin: const EdgeInsets.only(bottom: 20),
                       child: Padding(
                         padding: const EdgeInsets.all(16.0),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                Text('${ride['origin_name']} ➔ ${ride['destination_name']}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                                Chip(
-                                  label: Text(ride['status']),
-                                  backgroundColor: ride['status'] == 'Active' ? Colors.green[100] : Colors.blue[100],
+                                const Icon(Icons.share_location, color: primaryColor, size: 24),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    '${ride['origin_name']} ➔ ${ride['destination_name']}',
+                                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Color(0xFF1E293B)),
+                                  ),
+                                ),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: ride['status'] == 'Active' ? Colors.amber.shade50 : Colors.blue.shade50,
+                                    borderRadius: BorderRadius.circular(100),
+                                  ),
+                                  child: Text(
+                                    ride['status'],
+                                    style: TextStyle(
+                                      color: ride['status'] == 'Active' ? Colors.amber.shade800 : Colors.blue.shade700,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 12
+                                    ),
+                                  ),
                                 ),
                               ],
                             ),
-                            Text('Departure: ${DateFormat('hh:mm a').format(DateTime.parse(ride['departure_time']))}'),
-                            Text('Available Seats: ${ride['available_seats']} | Vehicle: ${ride['vehicle_type']}'),
-                            const Divider(),
+                            const SizedBox(height: 12),
+                            Text('Departure: ${DateFormat('hh:mm a').format(DateTime.parse(ride['departure_time']))}', style: const TextStyle(color: Colors.grey, fontSize: 13)),
+                            const Divider(height: 24),
                             
-                            // Accepted Passengers & Dynamic Fare
+                            // Accepted Passengers list
                             if (acceptedRequests.isNotEmpty) ...[
-                              const Text('Accepted Passengers (Splitting Fare)', style: TextStyle(fontWeight: FontWeight.bold)),
-                              const SizedBox(height: 4),
-                              ...acceptedRequests.map((req) => ListTile(
-                                dense: true,
-                                leading: const Icon(Icons.check_circle, color: Colors.green),
-                                title: Text(req['name']),
-                                subtitle: Text('Phone: ${req['phone']}'),
-                                trailing: Text('${req['dynamic_fare_share']} BDT', style: const TextStyle(fontWeight: FontWeight.bold, color: primaryColor)),
+                              const Text('Passengers sharing this ride:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF1E293B))),
+                              const SizedBox(height: 8),
+                              ...acceptedRequests.map((req) => Container(
+                                margin: const EdgeInsets.only(bottom: 8),
+                                decoration: BoxDecoration(
+                                  color: Colors.grey.shade50,
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: ListTile(
+                                  dense: true,
+                                  leading: const CircleAvatar(
+                                    backgroundColor: Colors.green,
+                                    radius: 12,
+                                    child: Icon(Icons.check, color: Colors.white, size: 14),
+                                  ),
+                                  title: Text(req['name'], style: const TextStyle(fontWeight: FontWeight.bold)),
+                                  subtitle: Text('Call: ${req['phone']}'),
+                                  trailing: Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                    decoration: BoxDecoration(color: primaryColor.withOpacity(0.08), borderRadius: BorderRadius.circular(8)),
+                                    child: Text('${req['dynamic_fare_share']} BDT', style: const TextStyle(color: primaryColor, fontWeight: FontWeight.bold)),
+                                  ),
+                                ),
                               )),
                               const SizedBox(height: 8),
                             ],
 
-                            // Pending passenger requests
+                            // Pending join requests
                             if (pendingRequests.isNotEmpty) ...[
-                              const Text('Pending Join Requests', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.orange)),
-                              const SizedBox(height: 4),
+                              const Text('Join Requests (Pending)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.orange)),
+                              const SizedBox(height: 8),
                               ...pendingRequests.map((req) => Card(
-                                color: Colors.orange[50],
+                                color: Colors.orange.shade50.withOpacity(0.4),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  side: BorderSide(color: Colors.orange.shade100)
+                                ),
                                 child: ListTile(
-                                  title: Text('${req['name']} (Rating: ${req['rating']})'),
-                                  subtitle: Text('Est. Fare Share: ${req['dynamic_fare_share']} BDT'),
+                                  title: Text(req['name'], style: const TextStyle(fontWeight: FontWeight.bold)),
+                                  subtitle: Row(
+                                    children: [
+                                      const Icon(Icons.star, color: Colors.amber, size: 14),
+                                      Text(' ${req['rating']} | ', style: const TextStyle(fontSize: 12)),
+                                      Text('Fare: ${req['dynamic_fare_share']} BDT', style: const TextStyle(fontSize: 12)),
+                                    ],
+                                  ),
                                   trailing: Row(
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
                                       IconButton(
-                                        icon: const Icon(Icons.check, color: Colors.green),
+                                        icon: const Icon(Icons.check_circle, color: Colors.green, size: 28),
                                         onPressed: () => rideProvider.respondToPassengerRequest(req['request_id'], 'Accepted'),
                                       ),
                                       IconButton(
-                                        icon: const Icon(Icons.close, color: Colors.red),
+                                        icon: const Icon(Icons.cancel, color: Colors.red, size: 28),
                                         onPressed: () => rideProvider.respondToPassengerRequest(req['request_id'], 'Rejected'),
                                       ),
                                     ],
@@ -280,21 +377,25 @@ class _RiderDashboardState extends State<RiderDashboard> {
                             if (pendingRequests.isEmpty && acceptedRequests.isEmpty)
                               const Padding(
                                 padding: EdgeInsets.symmetric(vertical: 8.0),
-                                child: Text('No requests received yet.', style: TextStyle(fontStyle: FontStyle.italic, color: Colors.grey)),
+                                child: Text('No ride requests received yet.', style: TextStyle(fontStyle: FontStyle.italic, color: Colors.grey, fontSize: 13)),
                               ),
                             
                             if (ride['status'] == 'Scheduled' && !_isSimulating)
-                              SizedBox(
-                                width: double.infinity,
-                                child: ElevatedButton.icon(
-                                  style: ElevatedButton.styleFrom(backgroundColor: primaryColor, foregroundColor: Colors.white),
-                                  onPressed: () => _startRideSimulation(
-                                    rideId, 
-                                    ride['origin_lat'], ride['origin_lng'], 
-                                    ride['destination_lat'], ride['destination_lng']
+                              Padding(
+                                padding: const EdgeInsets.only(top: 8.0),
+                                child: SizedBox(
+                                  width: double.infinity,
+                                  height: 46,
+                                  child: ElevatedButton.icon(
+                                    style: ElevatedButton.styleFrom(backgroundColor: primaryColor, foregroundColor: Colors.white),
+                                    onPressed: () => _startRideSimulation(
+                                      rideId, 
+                                      ride['origin_lat'], ride['origin_lng'], 
+                                      ride['destination_lat'], ride['destination_lng']
+                                    ),
+                                    icon: const Icon(Icons.play_arrow),
+                                    label: const Text('Start Commuting Session', style: TextStyle(fontWeight: FontWeight.bold)),
                                   ),
-                                  icon: const Icon(Icons.play_arrow),
-                                  label: const Text('Start commuting'),
                                 ),
                               ),
                           ],
@@ -307,43 +408,42 @@ class _RiderDashboardState extends State<RiderDashboard> {
               const SizedBox(height: 24),
             ],
 
-            // Offer Ride Form
-            const Text('Offer a New Commute', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: primaryColor)),
+            // 3. Offer a Commute Form
+            const Text('Publish a New Offer', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: primaryColor)),
             const SizedBox(height: 12),
             Card(
-              elevation: 3,
               child: Padding(
-                padding: const EdgeInsets.all(16.0),
+                padding: const EdgeInsets.all(20.0),
                 child: Form(
                   key: _formKey,
                   child: Column(
                     children: [
-                      // Origin hub dropdown
+                      // Origin
                       DropdownButtonFormField<String>(
                         value: _origin,
-                        decoration: const InputDecoration(labelText: 'Starting Hub', border: OutlineInputBorder()),
+                        decoration: const InputDecoration(
+                          labelText: 'Starting Hub',
+                          prefixIcon: Icon(Icons.my_location, color: primaryColor, size: 20),
+                        ),
                         items: _hubs.keys.map((h) => DropdownMenuItem(value: h, child: Text(h))).toList(),
                         onChanged: (val) => setState(() => _origin = val!),
                       ),
                       const SizedBox(height: 16),
 
-                      // Destination hub dropdown
+                      // Destination
                       DropdownButtonFormField<String>(
                         value: _destination,
-                        decoration: const InputDecoration(labelText: 'Destination Hub', border: OutlineInputBorder()),
+                        decoration: const InputDecoration(
+                          labelText: 'Destination Hub',
+                          prefixIcon: Icon(Icons.location_on_outlined, color: primaryColor, size: 20),
+                        ),
                         items: _hubs.keys.map((h) => DropdownMenuItem(value: h, child: Text(h))).toList(),
                         onChanged: (val) => setState(() => _destination = val!),
                       ),
                       const SizedBox(height: 16),
 
-                      // Departure Time selector
-                      ListTile(
-                        shape: RoundedRectangleBorder(
-                          side: const BorderSide(color: Colors.grey),
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        title: Text('Departure Time: ${DateFormat('yyyy-MM-dd hh:mm a').format(_departureTime)}'),
-                        trailing: const Icon(Icons.access_time, color: primaryColor),
+                      // Time Selector Card
+                      InkWell(
                         onTap: () async {
                           final date = await showDatePicker(
                             context: context,
@@ -363,31 +463,59 @@ class _RiderDashboardState extends State<RiderDashboard> {
                             }
                           }
                         },
+                        child: Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: Colors.grey.shade50,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: Colors.grey.shade200),
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(Icons.access_time, color: primaryColor),
+                              const SizedBox(width: 16),
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text('Selected Departure Time', style: TextStyle(color: Color(0xFF64748B), fontSize: 11)),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    DateFormat('yyyy-MM-dd | hh:mm a').format(_departureTime),
+                                    style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF1E293B)),
+                                  ),
+                                ],
+                              )
+                            ],
+                          ),
+                        ),
                       ),
                       const SizedBox(height: 16),
 
-                      // Vehicle selection
-                      DropdownButtonFormField<String>(
-                        value: _vehicleType,
-                        decoration: const InputDecoration(labelText: 'Vehicle Type', border: OutlineInputBorder()),
-                        items: const [
-                          DropdownMenuItem(value: 'Bike', child: Text('Motorcycle (Bike)')),
-                          DropdownMenuItem(value: 'Car', child: Text('Private Car')),
-                        ],
-                        onChanged: (val) {
-                          setState(() {
-                            _vehicleType = val!;
-                            _availableSeats = _vehicleType == 'Bike' ? 1 : 3; // Reset seats default
-                          });
-                        },
+                      // Segmented Vehicle Type Cards
+                      const Align(
+                        alignment: Alignment.centerLeft,
+                        child: Padding(
+                          padding: EdgeInsets.only(bottom: 8.0, left: 4),
+                          child: Text('Vehicle Category', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF1E293B))),
+                        ),
                       ),
-                      const SizedBox(height: 16),
+                      Row(
+                        children: [
+                          Expanded(child: _buildVehicleTab('Bike', Icons.motorcycle)),
+                          const SizedBox(width: 12),
+                          Expanded(child: _buildVehicleTab('Car', Icons.directions_car)),
+                        ],
+                      ),
+                      const SizedBox(height: 20),
 
                       // Seats selector
                       if (_vehicleType == 'Car')
                         DropdownButtonFormField<int>(
                           value: _availableSeats,
-                          decoration: const InputDecoration(labelText: 'Vacant Seats', border: OutlineInputBorder()),
+                          decoration: const InputDecoration(
+                            labelText: 'Vacant Seats',
+                            prefixIcon: Icon(Icons.event_seat_outlined, color: primaryColor, size: 20),
+                          ),
                           items: const [
                             DropdownMenuItem(value: 1, child: Text('1 seat')),
                             DropdownMenuItem(value: 2, child: Text('2 seats')),
@@ -397,39 +525,117 @@ class _RiderDashboardState extends State<RiderDashboard> {
                           onChanged: (val) => setState(() => _availableSeats = val!),
                         )
                       else
-                        const ListTile(
-                          title: Text('Seat Available: 1 seat max'),
-                          subtitle: Text('Bikes are limited to 1 passenger seat by policy'),
-                          leading: Icon(Icons.motorcycle, color: primaryColor),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                          decoration: BoxDecoration(
+                            color: Colors.teal.shade50.withOpacity(0.2),
+                            border: Border.all(color: Colors.teal.shade100),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Row(
+                            children: [
+                              Icon(Icons.info_outline, color: primaryColor, size: 20),
+                              SizedBox(width: 12),
+                              Expanded(
+                                child: Text(
+                                  'Bike offered commutes are capped at 1 passenger seat.',
+                                  style: TextStyle(color: primaryColor, fontSize: 12, fontWeight: FontWeight.w500),
+                                ),
+                              )
+                            ],
+                          ),
                         ),
                       const SizedBox(height: 16),
 
-                      // Helmet switch (Bike specific)
+                      // Helmet Switch
                       if (_vehicleType == 'Bike')
-                        SwitchListTile(
-                          title: const Text('Secondary Helmet Provided?'),
-                          subtitle: const Text('Policy: passengers must wear a helmet during the ride'),
-                          value: _helmetProvided,
-                          activeColor: primaryColor,
-                          onChanged: (val) => setState(() => _helmetProvided = val),
+                        Container(
+                          decoration: BoxDecoration(
+                            color: Colors.grey.shade50,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: Colors.grey.shade200),
+                          ),
+                          child: SwitchListTile(
+                            title: const Text('Provide Secondary Helmet?', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF1E293B))),
+                            subtitle: const Text('DIU policy requires helmets for passenger insurance', style: TextStyle(fontSize: 11)),
+                            value: _helmetProvided,
+                            activeColor: primaryColor,
+                            onChanged: (val) => setState(() => _helmetProvided = val),
+                          ),
                         ),
-                      const SizedBox(height: 20),
+                      const SizedBox(height: 24),
 
-                      // Submit offer
+                      // Submit button
                       SizedBox(
                         width: double.infinity,
-                        height: 48,
+                        height: 50,
                         child: ElevatedButton(
-                          style: ElevatedButton.styleFrom(backgroundColor: primaryColor, foregroundColor: Colors.white),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: primaryColor,
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          ),
                           onPressed: rideProvider.isLoading ? null : _submitOffer,
                           child: rideProvider.isLoading
-                              ? const CircularProgressIndicator(color: Colors.white)
-                              : const Text('Publish Offer', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                              ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                              : const Text('Publish Commute Offer', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
                         ),
                       )
                     ],
                   ),
                 ),
+              ),
+            )
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildConsoleMetric(String label, String val) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: const TextStyle(color: Color(0xFF64748B), fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 0.5)),
+        const SizedBox(height: 2),
+        Text(val, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
+      ],
+    );
+  }
+
+  Widget _buildVehicleTab(String vehicle, IconData icon) {
+    final isSelected = _vehicleType == vehicle;
+    const primaryColor = Color(0xFF0F5132);
+
+    return InkWell(
+      onTap: () {
+        setState(() {
+          _vehicleType = vehicle;
+          _availableSeats = _vehicleType == 'Bike' ? 1 : 3;
+        });
+      },
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 14),
+        decoration: BoxDecoration(
+          color: isSelected ? primaryColor.withOpacity(0.08) : Colors.white,
+          border: Border.all(
+            color: isSelected ? primaryColor : Colors.grey.shade200,
+            width: isSelected ? 1.5 : 1,
+          ),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, color: isSelected ? primaryColor : Colors.grey.shade600, size: 20),
+            const SizedBox(width: 8),
+            Text(
+              vehicle,
+              style: TextStyle(
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                color: isSelected ? primaryColor : Colors.grey.shade700,
+                fontSize: 13
               ),
             )
           ],
