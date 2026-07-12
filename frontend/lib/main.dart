@@ -432,6 +432,23 @@ class ProfileScreen extends StatelessWidget {
                       ],
                     ),
                   ),
+                  const SizedBox(height: 32),
+
+                  const Text('Ride History', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: primaryColor)),
+                  const SizedBox(height: 16),
+                  ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.white,
+                      foregroundColor: primaryColor,
+                      side: const BorderSide(color: Color(0xFFEAECF0)),
+                      minimumSize: const Size(double.infinity, 56),
+                    ),
+                    onPressed: () {
+                      Navigator.of(context).push(MaterialPageRoute(builder: (_) => const RideHistoryScreen()));
+                    },
+                    icon: const Icon(Icons.history),
+                    label: const Text('View Past Commutes'),
+                  ),
                   const SizedBox(height: 40),
                   
                   // Logout Button
@@ -483,6 +500,140 @@ class ProfileScreen extends StatelessWidget {
           )
         ],
       ),
+    );
+  }
+}
+
+class RideHistoryScreen extends StatefulWidget {
+  const RideHistoryScreen({super.key});
+
+  @override
+  State<RideHistoryScreen> createState() => _RideHistoryScreenState();
+}
+
+class _RideHistoryScreenState extends State<RideHistoryScreen> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Provider.of<RideProvider>(context, listen: false).fetchRideHistory();
+    });
+  }
+
+  void _showReviewDialog(String rideId, String revieweeId, String revieweeName) {
+    int rating = 5;
+    String comment = '';
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setState) {
+          return AlertDialog(
+            title: Text('Rate $revieweeName'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: List.generate(5, (index) {
+                    return IconButton(
+                      icon: Icon(
+                        index < rating ? Icons.star : Icons.star_border,
+                        color: Colors.amber,
+                        size: 32,
+                      ),
+                      onPressed: () {
+                        setState(() {
+                          rating = index + 1;
+                        });
+                      },
+                    );
+                  }),
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  decoration: const InputDecoration(
+                    labelText: 'Leave a comment (Optional)',
+                    border: OutlineInputBorder(),
+                  ),
+                  maxLines: 3,
+                  onChanged: (val) => comment = val,
+                )
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(ctx).pop(),
+                child: const Text('Cancel'),
+              ),
+              ElevatedButton(
+                onPressed: () async {
+                  Navigator.of(ctx).pop();
+                  final success = await Provider.of<RideProvider>(context, listen: false).submitReview(rideId, revieweeId, rating, comment);
+                  if (success && mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Review submitted!')));
+                  }
+                },
+                child: const Text('Submit Review'),
+              ),
+            ],
+          );
+        }
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final rideProvider = Provider.of<RideProvider>(context);
+    final user = Provider.of<AuthProvider>(context).user;
+
+    return Scaffold(
+      appBar: AppBar(title: const Text('Ride History')),
+      body: rideProvider.isLoading
+        ? const Center(child: CircularProgressIndicator())
+        : rideProvider.rideHistory.isEmpty
+          ? const Center(child: Text('No past rides found.'))
+          : ListView.builder(
+              padding: const EdgeInsets.all(16),
+              itemCount: rideProvider.rideHistory.length,
+              itemBuilder: (context, index) {
+                final ride = rideProvider.rideHistory[index];
+                final isRider = ride['rider_id'] == user?['id'];
+                // For a passenger, the reviewee is the rider.
+                // For a rider, the review logic would need to select a specific passenger, but for simplicity we'll let passengers review riders.
+
+                return Card(
+                  margin: const EdgeInsets.only(bottom: 16),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(ride['status'], style: TextStyle(fontWeight: FontWeight.bold, color: ride['status'] == 'Completed' ? Colors.green : Colors.red)),
+                            Text(ride['departure_time'].substring(0, 10)),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Text('${ride['origin_name']} ➔ ${ride['destination_name']}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                        const SizedBox(height: 12),
+                        if (!isRider && ride['status'] == 'Completed')
+                          SizedBox(
+                            width: double.infinity,
+                            child: OutlinedButton(
+                              onPressed: () => _showReviewDialog(ride['id'], ride['rider_id'], ride['rider_name']),
+                              child: Text('Review Driver (${ride['rider_name']})'),
+                            ),
+                          )
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
     );
   }
 }

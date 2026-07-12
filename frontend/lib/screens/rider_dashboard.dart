@@ -19,21 +19,13 @@ class _RiderDashboardState extends State<RiderDashboard> {
   final _formKey = GlobalKey<FormState>();
   final SocketService _socketService = SocketService();
   
-  // Coordinates mapping for major DIU commuter hubs
-  final Map<String, List<double>> _hubs = {
-    'Mirpur 10 Hub': [23.8069, 90.3687],
-    'Uttara House Building Hub': [23.8729, 90.4007],
-    'Dhanmondi 27 Hub': [23.7538, 90.3768],
-    'Savar Bus Stand Hub': [23.8442, 90.2581],
-    'DIU Smart City (Ashulia)': [23.8767, 90.3201],
-  };
-
-  String _origin = 'Mirpur 10 Hub';
-  String _destination = 'DIU Smart City (Ashulia)';
+  String? _origin;
+  String? _destination;
   DateTime _departureTime = DateTime.now().add(const Duration(hours: 1));
   String _vehicleType = 'Bike';
   int _availableSeats = 1;
   bool _helmetProvided = true;
+  String _offeredFare = '50';
 
   // Active ride tracking simulation states
   String? _activeRideId;
@@ -47,6 +39,17 @@ class _RiderDashboardState extends State<RiderDashboard> {
   void initState() {
     super.initState();
     _socketService.connect();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Provider.of<RideProvider>(context, listen: false).fetchHubs().then((_) {
+        final hubs = Provider.of<RideProvider>(context, listen: false).hubs;
+        if (hubs.isNotEmpty && mounted) {
+          setState(() {
+            _origin = hubs.first['name'];
+            _destination = hubs.length > 1 ? hubs.last['name'] : hubs.first['name'];
+          });
+        }
+      });
+    });
   }
 
   @override
@@ -59,8 +62,11 @@ class _RiderDashboardState extends State<RiderDashboard> {
   void _submitOffer() async {
     if (!_formKey.currentState!.validate()) return;
     
-    final originCoords = _hubs[_origin]!;
-    final destCoords = _hubs[_destination]!;
+    final hubs = Provider.of<RideProvider>(context, listen: false).hubs;
+    final originHub = hubs.firstWhere((h) => h['name'] == _origin, orElse: () => null);
+    final destHub = hubs.firstWhere((h) => h['name'] == _destination, orElse: () => null);
+
+    if (originHub == null || destHub == null) return;
 
     if (_origin == _destination) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -73,16 +79,17 @@ class _RiderDashboardState extends State<RiderDashboard> {
     }
 
     final success = await Provider.of<RideProvider>(context, listen: false).offerRide(
-      originName: _origin,
-      originLat: originCoords[0],
-      originLng: originCoords[1],
-      destinationName: _destination,
-      destinationLat: destCoords[0],
-      destinationLng: destCoords[1],
+      originName: _origin!,
+      originLat: double.parse(originHub['lat'].toString()),
+      originLng: double.parse(originHub['lng'].toString()),
+      destinationName: _destination!,
+      destinationLat: double.parse(destHub['lat'].toString()),
+      destinationLng: double.parse(destHub['lng'].toString()),
       departureTime: _departureTime,
       vehicleType: _vehicleType,
       availableSeats: _availableSeats,
       helmetProvided: _helmetProvided,
+      offeredFare: double.tryParse(_offeredFare) ?? 50,
     );
 
     if (success && mounted) {
@@ -94,6 +101,76 @@ class _RiderDashboardState extends State<RiderDashboard> {
       );
       Provider.of<RideProvider>(context, listen: false).fetchActiveRides();
     }
+  }
+
+  void _respondToBid(String requestId, double proposedFare) {
+    showDialog(
+      context: context,
+      builder: (ctx) {
+        double bidAmount = proposedFare;
+        bool isCountering = false;
+
+        return StatefulBuilder(
+          builder: (context, setStateDialog) {
+            return AlertDialog(
+              title: const Text('Respond to Request'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('Passenger is offering:', style: TextStyle(color: Colors.grey)),
+                  const SizedBox(height: 8),
+                  Text('$proposedFare BDT', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 24, color: Color(0xFF101828))),
+                  const SizedBox(height: 16),
+
+                  if (!isCountering)
+                    TextButton.icon(
+                      onPressed: () => setStateDialog(() => isCountering = true),
+                      icon: const Icon(Icons.local_offer),
+                      label: const Text('Make a counter offer'),
+                    )
+                  else
+                    TextField(
+                      keyboardType: TextInputType.number,
+                      decoration: const InputDecoration(
+                        labelText: 'Your Counter Offer (BDT)',
+                        prefixIcon: Icon(Icons.money),
+                      ),
+                      onChanged: (val) {
+                        if (val.isNotEmpty) {
+                          bidAmount = double.tryParse(val) ?? proposedFare;
+                        } else {
+                          bidAmount = proposedFare;
+                        }
+                      },
+                    )
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () async {
+                    Navigator.of(ctx).pop();
+                    await Provider.of<RideProvider>(context, listen: false).respondToPassengerRequest(requestId, 'Rejected');
+                  },
+                  child: const Text('Reject entirely', style: TextStyle(color: Colors.red)),
+                ),
+                ElevatedButton(
+                  onPressed: () async {
+                    Navigator.of(ctx).pop();
+                    if (isCountering) {
+                      await Provider.of<RideProvider>(context, listen: false).submitBid(requestId, bidAmount);
+                    } else {
+                      await Provider.of<RideProvider>(context, listen: false).respondToPassengerRequest(requestId, 'Accepted');
+                    }
+                  },
+                  child: Text(isCountering ? 'Send Counter' : 'Accept Fare'),
+                ),
+              ],
+            );
+          }
+        );
+      }
+    );
   }
 
   void _startRideSimulation(String rideId, double startLat, double startLng, double endLat, double endLng) async {
@@ -375,7 +452,7 @@ class _RiderDashboardState extends State<RiderDashboard> {
                                     Container(
                                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                                       decoration: BoxDecoration(color: const Color(0xFFF2F4F7), borderRadius: BorderRadius.circular(8)),
-                                      child: Text('${req['dynamic_fare_share']} BDT', style: const TextStyle(color: primaryColor, fontWeight: FontWeight.bold)),
+                                      child: Text('${req['proposed_fare']} BDT', style: const TextStyle(color: primaryColor, fontWeight: FontWeight.bold)),
                                     ),
                                   ],
                                 ),
@@ -417,37 +494,40 @@ class _RiderDashboardState extends State<RiderDashboard> {
                                                   Text(' ${req['rating']}', style: const TextStyle(fontSize: 13, color: Color(0xFFB54708), fontWeight: FontWeight.w600)),
                                                 ],
                                               ),
+                                              if (req['bid_status'] == 'Rider_Counter')
+                                                const Text('Waiting for passenger response', style: TextStyle(fontSize: 12, color: Color(0xFF667085))),
                                             ],
                                           ),
                                         ),
-                                        Text('${req['dynamic_fare_share']} BDT', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Color(0xFFB54708))),
+                                        Text('${req['proposed_fare']} BDT', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Color(0xFFB54708))),
                                       ],
                                     ),
                                     const SizedBox(height: 16),
-                                    Row(
-                                      children: [
-                                        Expanded(
-                                          child: OutlinedButton(
-                                            style: OutlinedButton.styleFrom(
-                                              foregroundColor: const Color(0xFFD92D20),
-                                              side: const BorderSide(color: Color(0xFFFDA29B)),
+                                    if (req['bid_status'] != 'Rider_Counter')
+                                      Row(
+                                        children: [
+                                          Expanded(
+                                            child: OutlinedButton(
+                                              style: OutlinedButton.styleFrom(
+                                                foregroundColor: const Color(0xFFD92D20),
+                                                side: const BorderSide(color: Color(0xFFFDA29B)),
+                                              ),
+                                              onPressed: () => rideProvider.respondToPassengerRequest(req['request_id'], 'Rejected'),
+                                              child: const Text('Decline'),
                                             ),
-                                            onPressed: () => rideProvider.respondToPassengerRequest(req['request_id'], 'Rejected'),
-                                            child: const Text('Decline'),
                                           ),
-                                        ),
-                                        const SizedBox(width: 12),
-                                        Expanded(
-                                          child: ElevatedButton(
-                                            style: ElevatedButton.styleFrom(
-                                              backgroundColor: const Color(0xFF12B76A),
+                                          const SizedBox(width: 12),
+                                          Expanded(
+                                            child: ElevatedButton(
+                                              style: ElevatedButton.styleFrom(
+                                                backgroundColor: const Color(0xFF12B76A),
+                                              ),
+                                              onPressed: () => _respondToBid(req['request_id'], double.tryParse(req['proposed_fare'].toString()) ?? 0),
+                                              child: const Text('Respond'),
                                             ),
-                                            onPressed: () => rideProvider.respondToPassengerRequest(req['request_id'], 'Accepted'),
-                                            child: const Text('Accept'),
                                           ),
-                                        ),
-                                      ],
-                                    )
+                                        ],
+                                      )
                                   ],
                                 ),
                               )).toList().animate().fadeIn().slideX(begin: 0.1),
@@ -502,29 +582,33 @@ class _RiderDashboardState extends State<RiderDashboard> {
                   child: Column(
                     children: [
                       // Origin
-                      DropdownButtonFormField<String>(
-                        value: _origin,
-                        decoration: InputDecoration(
-                          labelText: 'Starting Hub',
-                          prefixIcon: const Icon(Icons.trip_origin, color: accentColor, size: 20),
-                          fillColor: const Color(0xFFF9FAFB),
+                      if (rideProvider.hubs.isEmpty)
+                        const CircularProgressIndicator()
+                      else ...[
+                        DropdownButtonFormField<String>(
+                          value: _origin,
+                          decoration: InputDecoration(
+                            labelText: 'Starting Hub',
+                            prefixIcon: const Icon(Icons.trip_origin, color: accentColor, size: 20),
+                            fillColor: const Color(0xFFF9FAFB),
+                          ),
+                          items: rideProvider.hubs.map((h) => DropdownMenuItem<String>(value: h['name'], child: Text(h['name']))).toList(),
+                          onChanged: (val) => setState(() => _origin = val!),
                         ),
-                        items: _hubs.keys.map((h) => DropdownMenuItem(value: h, child: Text(h))).toList(),
-                        onChanged: (val) => setState(() => _origin = val!),
-                      ),
-                      const SizedBox(height: 16),
+                        const SizedBox(height: 16),
 
-                      // Destination
-                      DropdownButtonFormField<String>(
-                        value: _destination,
-                        decoration: InputDecoration(
-                          labelText: 'Destination Hub',
-                          prefixIcon: const Icon(Icons.location_on, color: primaryColor, size: 20),
-                          fillColor: const Color(0xFFF9FAFB),
+                        // Destination
+                        DropdownButtonFormField<String>(
+                          value: _destination,
+                          decoration: InputDecoration(
+                            labelText: 'Destination Hub',
+                            prefixIcon: const Icon(Icons.location_on, color: primaryColor, size: 20),
+                            fillColor: const Color(0xFFF9FAFB),
+                          ),
+                          items: rideProvider.hubs.map((h) => DropdownMenuItem<String>(value: h['name'], child: Text(h['name']))).toList(),
+                          onChanged: (val) => setState(() => _destination = val!),
                         ),
-                        items: _hubs.keys.map((h) => DropdownMenuItem(value: h, child: Text(h))).toList(),
-                        onChanged: (val) => setState(() => _destination = val!),
-                      ),
+                      ],
                       const SizedBox(height: 24),
 
                       // Time Selector Card
@@ -654,6 +738,21 @@ class _RiderDashboardState extends State<RiderDashboard> {
                             onChanged: (val) => setState(() => _helmetProvided = val),
                           ),
                         ).animate().fadeIn(),
+                      const SizedBox(height: 24),
+
+                      // Base Fare Request
+                      TextFormField(
+                        initialValue: _offeredFare,
+                        keyboardType: TextInputType.number,
+                        decoration: InputDecoration(
+                          labelText: 'Offered Fare (BDT)',
+                          prefixIcon: const Icon(Icons.money, color: primaryColor, size: 20),
+                          fillColor: const Color(0xFFF9FAFB),
+                        ),
+                        validator: (value) => value == null || value.isEmpty || int.tryParse(value) == null ? 'Enter valid amount' : null,
+                        onSaved: (value) => _offeredFare = value!,
+                        onChanged: (val) => setState(() => _offeredFare = val),
+                      ).animate().fadeIn(),
                       const SizedBox(height: 32),
 
                       // Submit button

@@ -5,23 +5,45 @@ class RideProvider with ChangeNotifier {
   final ApiService _apiService = ApiService();
 
   List<dynamic> _activeRides = [];
+  List<dynamic> _rideHistory = [];
+  List<dynamic> _hubs = [];
   Map<String, dynamic>? _selectedRideDetails;
   bool _isLoading = false;
   String? _error;
 
   List<dynamic> get activeRides => _activeRides;
+  List<dynamic> get rideHistory => _rideHistory;
+  List<dynamic> get hubs => _hubs;
   Map<String, dynamic>? get selectedRideDetails => _selectedRideDetails;
   bool get isLoading => _isLoading;
   String? get error => _error;
 
-  // Fetch available rides for matching
-  Future<void> fetchActiveRides() async {
+  // Fetch dynamic locations
+  Future<void> fetchHubs() async {
+    try {
+      final response = await _apiService.get('/hubs');
+      if (response.statusCode == 200) {
+        _hubs = response.data;
+        notifyListeners();
+      }
+    } catch (e) {
+      print('Failed to fetch hubs: $e');
+    }
+  }
+
+  // Fetch available rides for matching with filters
+  Future<void> fetchActiveRides({String? origin, String? destination, String? vehicleType}) async {
     _isLoading = true;
     _error = null;
     notifyListeners();
 
     try {
-      final response = await _apiService.get('/rides/active');
+      final queryParams = <String, dynamic>{};
+      if (origin != null && origin.isNotEmpty) queryParams['origin'] = origin;
+      if (destination != null && destination.isNotEmpty) queryParams['destination'] = destination;
+      if (vehicleType != null && vehicleType.isNotEmpty) queryParams['vehicleType'] = vehicleType;
+
+      final response = await _apiService.get('/rides/active', queryParameters: queryParams);
       if (response.statusCode == 200) {
         _activeRides = response.data;
       }
@@ -45,6 +67,7 @@ class RideProvider with ChangeNotifier {
     required String vehicleType,
     required int availableSeats,
     required bool helmetProvided,
+    required double offeredFare,
   }) async {
     _isLoading = true;
     _error = null;
@@ -62,6 +85,7 @@ class RideProvider with ChangeNotifier {
         'vehicle_type': vehicleType,
         'available_seats': availableSeats,
         'helmet_provided': helmetProvided,
+        'offered_fare': offeredFare,
       });
 
       if (response.statusCode == 201) {
@@ -79,17 +103,51 @@ class RideProvider with ChangeNotifier {
   }
 
   // Request to join a ride (Passenger Matching)
-  Future<bool> requestToJoinRide(String rideId) async {
+  Future<bool> requestToJoinRide(String rideId, [double? bidAmount]) async {
     _isLoading = true;
     _error = null;
     notifyListeners();
 
     try {
-      final response = await _apiService.post('/rides/request', data: {
-        'ride_id': rideId,
-      });
+      final data = {'ride_id': rideId};
+      if (bidAmount != null) {
+        data['bid_amount'] = bidAmount.toString();
+      }
+
+      final response = await _apiService.post('/rides/request', data: data);
 
       if (response.statusCode == 201) {
+        _isLoading = false;
+        notifyListeners();
+        return true;
+      }
+    } catch (e) {
+      _error = e.toString();
+    }
+
+    _isLoading = false;
+    notifyListeners();
+    return false;
+  }
+
+  // Submit a Counter Bid
+  Future<bool> submitBid(String requestId, double proposedFare) async {
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      final response = await _apiService.post('/rides/request/$requestId/bid', data: {
+        'proposed_fare': proposedFare,
+      });
+
+      if (response.statusCode == 200) {
+        // Refresh details
+        if (_selectedRideDetails != null && _selectedRideDetails!['ride']['id'] != null) {
+          await fetchRideDetails(_selectedRideDetails!['ride']['id']);
+        } else {
+          await fetchActiveRides();
+        }
         _isLoading = false;
         notifyListeners();
         return true;
@@ -206,6 +264,52 @@ class RideProvider with ChangeNotifier {
 
     _isLoading = false;
     notifyListeners();
+  }
+
+  // Fetch Ride History
+  Future<void> fetchRideHistory() async {
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      final response = await _apiService.get('/rides/history');
+      if (response.statusCode == 200) {
+        _rideHistory = response.data;
+      }
+    } catch (e) {
+      _error = e.toString();
+    }
+
+    _isLoading = false;
+    notifyListeners();
+  }
+
+  // Submit a Review
+  Future<bool> submitReview(String rideId, String revieweeId, int rating, String comment) async {
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      final response = await _apiService.post('/rides/$rideId/review', data: {
+        'reviewee_id': revieweeId,
+        'rating': rating,
+        'comment': comment,
+      });
+
+      if (response.statusCode == 201) {
+        _isLoading = false;
+        notifyListeners();
+        return true;
+      }
+    } catch (e) {
+      _error = e.toString();
+    }
+
+    _isLoading = false;
+    notifyListeners();
+    return false;
   }
 
   // Reset selected ride details

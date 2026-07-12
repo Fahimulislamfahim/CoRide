@@ -7,6 +7,7 @@ require('dotenv').config();
 const db = require('./config/db');
 const authRoutes = require('./routes/authRoutes');
 const rideRoutes = require('./routes/rideRoutes');
+const hubRoutes = require('./routes/hubRoutes');
 const { apiLimiter } = require('./middlewares/rateLimiter');
 const registerSocketHandlers = require('./sockets/socketHandler');
 
@@ -54,6 +55,7 @@ app.get('/ping', (req, res) => {
 // API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/rides', rideRoutes);
+app.use('/api/hubs', hubRoutes);
 
 // Global Error Handler
 app.use((err, req, res, next) => {

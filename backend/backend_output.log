@@ -1,0 +1,12 @@
+
+> coride-backend@1.0.0 start
+> node src/server.js
+
+==================================================
+  WARNING: DATABASE_URL not detected in environment.
+  Enabling In-Memory Mock Database Fallback.
+==================================================
+====================================================
+  CoRide Server Running on Port: 5000
+  Environment: development
+====================================================

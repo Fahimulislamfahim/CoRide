@@ -91,18 +91,9 @@ class _PassengerMatchingState extends State<PassengerMatching> {
   StreamSubscription? _statusSub;
   StreamSubscription? _connectionSub;
 
-  // Hubs mapping
-  final Map<String, List<double>> _hubs = {
-    'Mirpur 10 Hub': [23.8069, 90.3687],
-    'Uttara House Building Hub': [23.8729, 90.4007],
-    'Dhanmondi 27 Hub': [23.7538, 90.3768],
-    'Savar Bus Stand Hub': [23.8442, 90.2581],
-    'DIU Smart City (Ashulia)': [23.8767, 90.3201],
-  };
-
   // Route parameters
-  String _origin = 'Mirpur 10 Hub';
-  String _destination = 'DIU Smart City (Ashulia)';
+  String? _origin;
+  String? _destination;
   DateTime _departureTime = DateTime.now().add(const Duration(hours: 1));
   int _passengerCount = 1;
   String _selectedVehicle = 'Bike';
@@ -121,8 +112,20 @@ class _PassengerMatchingState extends State<PassengerMatching> {
       });
     });
 
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      Provider.of<RideProvider>(context, listen: false).fetchActiveRides();
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final provider = Provider.of<RideProvider>(context, listen: false);
+      await provider.fetchHubs();
+      if (provider.hubs.isNotEmpty) {
+        if (mounted) {
+          setState(() {
+            _origin = provider.hubs[0]['name'];
+            if (provider.hubs.length > 1) {
+              _destination = provider.hubs[1]['name'];
+            }
+          });
+        }
+      }
+      provider.fetchActiveRides(origin: _origin, destination: _destination, vehicleType: _selectedVehicle);
     });
   }
 
@@ -185,17 +188,110 @@ class _PassengerMatchingState extends State<PassengerMatching> {
     Provider.of<RideProvider>(context, listen: false).fetchActiveRides();
   }
 
-  void _requestJoin(String rideId) async {
-    final success = await Provider.of<RideProvider>(context, listen: false).requestToJoinRide(rideId);
-    if (success && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Join request sent! Waiting for rider approval.'),
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
-      Provider.of<RideProvider>(context, listen: false).fetchActiveRides();
-    }
+  void _requestJoin(String rideId, double offeredFare) {
+    showDialog(
+      context: context,
+      builder: (ctx) {
+        double bidAmount = offeredFare;
+        bool isBidding = false;
+
+        return StatefulBuilder(
+          builder: (context, setStateDialog) {
+            return AlertDialog(
+              title: const Text('Join Commute'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('The rider is asking for:', style: TextStyle(color: Colors.grey)),
+                  const SizedBox(height: 8),
+                  Text('$offeredFare BDT', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 24, color: Color(0xFF101828))),
+                  const SizedBox(height: 16),
+
+                  if (!isBidding)
+                    TextButton.icon(
+                      onPressed: () => setStateDialog(() => isBidding = true),
+                      icon: const Icon(Icons.local_offer),
+                      label: const Text('Make a counter offer (Bid)'),
+                    )
+                  else
+                    TextField(
+                      keyboardType: TextInputType.number,
+                      decoration: const InputDecoration(
+                        labelText: 'Your Bid (BDT)',
+                        prefixIcon: Icon(Icons.money),
+                      ),
+                      onChanged: (val) {
+                        if (val.isNotEmpty) {
+                          bidAmount = double.tryParse(val) ?? offeredFare;
+                        } else {
+                          bidAmount = offeredFare;
+                        }
+                      },
+                    )
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(ctx).pop(),
+                  child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+                ),
+                ElevatedButton(
+                  onPressed: () async {
+                    Navigator.of(ctx).pop();
+                    final success = await Provider.of<RideProvider>(context, listen: false).requestToJoinRide(rideId, isBidding ? bidAmount : null);
+                    if (success && mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(isBidding ? 'Counter offer sent!' : 'Join request sent!'),
+                          behavior: SnackBarBehavior.floating,
+                        ),
+                      );
+                      Provider.of<RideProvider>(context, listen: false).fetchActiveRides(origin: _origin, destination: _destination, vehicleType: _selectedVehicle);
+                    }
+                  },
+                  child: Text(isBidding ? 'Submit Bid' : 'Accept Fare & Request'),
+                ),
+              ],
+            );
+          }
+        );
+      }
+    );
+  }
+
+  void _respondToBid(String requestId, double currentBid) {
+    showDialog(
+      context: context,
+      builder: (ctx) {
+        return AlertDialog(
+          title: const Text('Counter Offer Received'),
+          content: Text('The rider has countered with $currentBid BDT. Do you accept?'),
+          actions: [
+             TextButton(
+              onPressed: () async {
+                Navigator.of(ctx).pop();
+                final success = await Provider.of<RideProvider>(context, listen: false).respondToPassengerRequest(requestId, 'Rejected');
+                 if (success && mounted) {
+                  Provider.of<RideProvider>(context, listen: false).fetchActiveRides(origin: _origin, destination: _destination, vehicleType: _selectedVehicle);
+                }
+              },
+              child: const Text('Reject', style: TextStyle(color: Colors.red)),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                Navigator.of(ctx).pop();
+                final success = await Provider.of<RideProvider>(context, listen: false).respondToPassengerRequest(requestId, 'Accepted');
+                if (success && mounted) {
+                  Provider.of<RideProvider>(context, listen: false).fetchActiveRides(origin: _origin, destination: _destination, vehicleType: _selectedVehicle);
+                }
+              },
+              child: const Text('Accept Bid'),
+            ),
+          ]
+        );
+      }
+    );
   }
 
   void _cancelRequest(String rideId) async {
@@ -396,26 +492,26 @@ class _PassengerMatchingState extends State<PassengerMatching> {
                                 // Origin Field
                                 DropdownButtonFormField<String>(
                                   value: _origin,
-                                  decoration: InputDecoration(
+                                  decoration: const InputDecoration(
                                     labelText: 'Pickup Location',
-                                    prefixIcon: const Icon(Icons.trip_origin, color: accentColor, size: 20),
-                                    fillColor: const Color(0xFFF9FAFB),
+                                    prefixIcon: Icon(Icons.trip_origin, color: accentColor, size: 20),
+                                    fillColor: Color(0xFFF9FAFB),
                                   ),
-                                  items: _hubs.keys.map((h) => DropdownMenuItem(value: h, child: Text(h, style: const TextStyle(fontSize: 14)))).toList(),
-                                  onChanged: (val) => setState(() => _origin = val!),
+                                  items: rideProvider.hubs.map((h) => DropdownMenuItem<String>(value: h['name'], child: Text(h['name'], style: const TextStyle(fontSize: 14)))).toList(),
+                                  onChanged: (val) => setState(() => _origin = val),
                                 ),
                                 const SizedBox(height: 16),
                                 
                                 // Destination Field
                                 DropdownButtonFormField<String>(
                                   value: _destination,
-                                  decoration: InputDecoration(
+                                  decoration: const InputDecoration(
                                     labelText: 'Drop-off Location',
-                                    prefixIcon: const Icon(Icons.location_on, color: primaryColor, size: 20),
-                                    fillColor: const Color(0xFFF9FAFB),
+                                    prefixIcon: Icon(Icons.location_on, color: primaryColor, size: 20),
+                                    fillColor: Color(0xFFF9FAFB),
                                   ),
-                                  items: _hubs.keys.map((h) => DropdownMenuItem(value: h, child: Text(h, style: const TextStyle(fontSize: 14)))).toList(),
-                                  onChanged: (val) => setState(() => _destination = val!),
+                                  items: rideProvider.hubs.map((h) => DropdownMenuItem<String>(value: h['name'], child: Text(h['name'], style: const TextStyle(fontSize: 14)))).toList(),
+                                  onChanged: (val) => setState(() => _destination = val),
                                 ),
                               ],
                             ),
@@ -517,7 +613,7 @@ class _PassengerMatchingState extends State<PassengerMatching> {
                       width: double.infinity,
                       height: 56,
                       child: ElevatedButton(
-                        onPressed: () => rideProvider.fetchActiveRides(),
+                        onPressed: () => rideProvider.fetchActiveRides(origin: _origin, destination: _destination, vehicleType: _selectedVehicle),
                         child: rideProvider.isLoading
                             ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 3))
                             : const Text('Find Commute Options', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16)),
@@ -579,7 +675,7 @@ class _PassengerMatchingState extends State<PassengerMatching> {
                                     Container(
                                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                                       decoration: BoxDecoration(color: const Color(0xFFF2F4F7), borderRadius: BorderRadius.circular(8)),
-                                      child: Text('${ride['estimated_fare']} BDT', style: const TextStyle(fontWeight: FontWeight.w600, color: Color(0xFF344054), fontSize: 14)),
+                                      child: Text('${ride['offered_fare']} BDT', style: const TextStyle(fontWeight: FontWeight.w600, color: Color(0xFF344054), fontSize: 14)),
                                     ),
                                   ],
                                 ),
@@ -691,16 +787,30 @@ class _PassengerMatchingState extends State<PassengerMatching> {
                                             size: 20,
                                           ),
                                           const SizedBox(width: 12),
-                                          Text(
-                                            'Request ${ride['passenger_request_status']}',
-                                            style: TextStyle(
-                                              fontWeight: FontWeight.w600,
-                                              fontSize: 14,
-                                              color: ride['passenger_request_status'] == 'Accepted'
-                                                  ? const Color(0xFF027A48)
-                                                  : ride['passenger_request_status'] == 'Pending'
-                                                      ? const Color(0xFFB54708)
-                                                      : const Color(0xFFB42318),
+                                          Expanded(
+                                            child: Column(
+                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                              children: [
+                                                Text(
+                                                  'Request ${ride['passenger_request_status']}',
+                                                  style: TextStyle(
+                                                    fontWeight: FontWeight.w600,
+                                                    fontSize: 14,
+                                                    color: ride['passenger_request_status'] == 'Accepted'
+                                                        ? const Color(0xFF027A48)
+                                                        : ride['passenger_request_status'] == 'Pending'
+                                                            ? const Color(0xFFB54708)
+                                                            : const Color(0xFFB42318),
+                                                  ),
+                                                ),
+                                                if (ride['passenger_request_status'] == 'Pending')
+                                                  Text(
+                                                    ride['bid_status'] == 'Initial' ? 'Waiting for rider response'
+                                                    : ride['bid_status'] == 'Passenger_Counter' ? 'You bid ${ride['proposed_fare']} BDT'
+                                                    : 'Rider countered with ${ride['proposed_fare']} BDT',
+                                                    style: const TextStyle(fontSize: 12, color: Color(0xFFB54708)),
+                                                  ),
+                                              ],
                                             ),
                                           ),
                                         ],
@@ -730,22 +840,32 @@ class _PassengerMatchingState extends State<PassengerMatching> {
                                           style: ElevatedButton.styleFrom(
                                             padding: const EdgeInsets.symmetric(vertical: 14),
                                           ),
-                                          onPressed: () => _requestJoin(ride['id']),
+                                          onPressed: () => _requestJoin(ride['id'], double.tryParse(ride['offered_fare'].toString()) ?? 0),
                                           child: const Text('Request to Join'),
                                         ),
                                       )
-                                    else if (ride['passenger_request_status'] == 'Pending' || ride['passenger_request_status'] == 'Accepted')
-                                      Expanded(
-                                        child: OutlinedButton(
-                                          style: OutlinedButton.styleFrom(
-                                            foregroundColor: const Color(0xFFD92D20),
-                                            side: const BorderSide(color: Color(0xFFFDA29B)),
-                                            padding: const EdgeInsets.symmetric(vertical: 14),
+                                    else if (ride['passenger_request_status'] == 'Pending' || ride['passenger_request_status'] == 'Accepted') ...[
+                                      if (ride['bid_status'] == 'Rider_Counter')
+                                        Expanded(
+                                          child: ElevatedButton(
+                                            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFF79009)),
+                                            onPressed: () => _respondToBid(ride['passenger_request_id'], double.tryParse(ride['proposed_fare'].toString()) ?? 0),
+                                            child: const Text('Respond to Counter Bid'),
                                           ),
-                                          onPressed: () => _cancelRequest(ride['id']),
-                                          child: const Text('Cancel Request'),
-                                        ),
-                                      )
+                                        )
+                                      else
+                                        Expanded(
+                                          child: OutlinedButton(
+                                            style: OutlinedButton.styleFrom(
+                                              foregroundColor: const Color(0xFFD92D20),
+                                              side: const BorderSide(color: Color(0xFFFDA29B)),
+                                              padding: const EdgeInsets.symmetric(vertical: 14),
+                                            ),
+                                            onPressed: () => _cancelRequest(ride['id']),
+                                            child: const Text('Cancel Request'),
+                                          ),
+                                        )
+                                    ]
                                   ],
                                 ),
                               ],
