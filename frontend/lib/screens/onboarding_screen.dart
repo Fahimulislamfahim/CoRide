@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import '../main.dart';
 
 class OnboardingScreen extends StatefulWidget {
@@ -27,18 +28,15 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   @override
   Widget build(BuildContext context) {
-    const primaryColor = Color(0xFF0F5132); // DIU Green
-    const brandBlue = Color(0xFF0D6EFD); // Blue from reference onboarding button
+    const primaryColor = Color(0xFF101828); // Deep sleek charcoal
+    const accentColor = Color(0xFF2E90FA); // Slick modern blue
 
     return Scaffold(
+      backgroundColor: primaryColor,
       body: Stack(
         children: [
-          // 1. Top Half: Onboarding Scenic Image
-          Positioned(
-            top: 0,
-            left: 0,
-            right: 0,
-            height: MediaQuery.of(context).size.height * 0.58,
+          // 1. Premium Full-screen Imagery with dark gradient overlay
+          Positioned.fill(
             child: Stack(
               children: [
                 Image.asset(
@@ -49,155 +47,135 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   errorBuilder: (context, error, stackTrace) => Container(
                     decoration: const BoxDecoration(
                       gradient: LinearGradient(
-                        colors: [primaryColor, Color(0xFF00B4D8)],
+                        colors: [Color(0xFF101828), Color(0xFF1D2939)],
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
                       ),
                     ),
-                    child: const Center(
-                      child: Icon(Icons.commute_outlined, size: 80, color: Colors.white),
-                    ),
                   ),
                 ),
-                // Gradient overlay to blend
+                // Premium gradient overlays for text readability and slick look
                 Container(
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
                       colors: [
-                        Colors.black.withOpacity(0.15),
-                        Colors.transparent,
+                        primaryColor.withOpacity(0.0),
+                        primaryColor.withOpacity(0.3),
+                        primaryColor.withOpacity(0.9),
+                        primaryColor,
                       ],
+                      stops: const [0.0, 0.4, 0.7, 1.0],
                       begin: Alignment.topCenter,
                       end: Alignment.bottomCenter,
                     ),
                   ),
                 ),
-                // Top logo / brand overlay
-                Positioned(
-                  top: 50,
-                  left: 20,
-                  child: Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: brandBlue.withOpacity(0.9),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: const Icon(Icons.directions_car_filled, color: Colors.white, size: 22),
+              ],
+            ).animate().fadeIn(duration: 1000.ms, curve: Curves.easeOut),
+          ),
+
+          // 2. Top App Logo / Branding
+          Positioned(
+            top: 60,
+            left: 24,
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: Colors.white.withOpacity(0.2)),
+                    // Glassmorphism effect
+                    backgroundBlendMode: BlendMode.overlay,
+                  ),
+                  child: const Icon(Icons.directions_car_filled, color: Colors.white, size: 24),
+                ),
+                const SizedBox(width: 12),
+                const Text(
+                  'CoRide',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: -0.5,
                   ),
                 ),
               ],
-            ),
+            ).animate().slideY(begin: -0.5, end: 0, duration: 600.ms, curve: Curves.easeOutBack).fadeIn(),
           ),
 
-          // 2. Bottom Half: Curved White Content Panel with slide animation
+          // 3. Bottom Content Area (Text & Buttons)
           Positioned(
             bottom: 0,
             left: 0,
             right: 0,
-            height: MediaQuery.of(context).size.height * 0.46,
-            child: TweenAnimationBuilder<double>(
-              tween: Tween<double>(begin: 120.0, end: 0.0),
-              duration: const Duration(milliseconds: 700),
-              curve: Curves.easeOutQuad,
-              builder: (context, slideY, child) {
-                return Transform.translate(
-                  offset: Offset(0, slideY),
-                  child: child,
-                );
-              },
-              child: Container(
-                decoration: const BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.only(
-                    topLeft: Radius.circular(32),
-                    topRight: Radius.circular(32),
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black12,
-                      blurRadius: 10,
-                      spreadRadius: 2,
+            child: Container(
+              padding: const EdgeInsets.fromLTRB(24, 0, 24, 48),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Main Title
+                  const Text(
+                    'Elevate your\ndaily commute.',
+                    style: TextStyle(
+                      fontSize: 42,
+                      fontWeight: FontWeight.w800,
+                      color: Colors.white,
+                      height: 1.1,
+                      letterSpacing: -1,
                     ),
-                  ],
-                ),
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 28),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Handlebar decoration line
-                    Align(
-                      alignment: Alignment.center,
-                      child: Container(
-                        width: 48,
-                        height: 4,
+                  ).animate().slideY(begin: 0.2, end: 0, duration: 700.ms, delay: 200.ms, curve: Curves.easeOutCubic).fadeIn(),
+                  const SizedBox(height: 20),
+
+                  // Description
+                  Text(
+                    'Connect with verified campus drivers. Share the ride, split the cost, and reduce your carbon footprint in style.',
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: Colors.white.withOpacity(0.7),
+                      height: 1.5,
+                      fontWeight: FontWeight.w400,
+                    ),
+                  ).animate().slideY(begin: 0.2, end: 0, duration: 700.ms, delay: 400.ms, curve: Curves.easeOutCubic).fadeIn(),
+                  const SizedBox(height: 48),
+
+                  // Onboarding buttons
+                  Row(
+                    children: [
+                      Expanded(
+                        child: SizedBox(
+                          height: 56,
+                          child: ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.white,
+                              foregroundColor: primaryColor,
+                              elevation: 0,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                            ),
+                            onPressed: _navigateToAuth,
+                            child: const Text('Get Started', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                          ),
+                        ),
+                      ).animate().slideY(begin: 0.5, end: 0, duration: 600.ms, delay: 600.ms, curve: Curves.easeOutBack).fadeIn(),
+                      const SizedBox(width: 16),
+                      Container(
+                        height: 56,
+                        width: 56,
                         decoration: BoxDecoration(
-                          color: Colors.grey.shade300,
-                          borderRadius: BorderRadius.circular(10),
+                          color: Colors.white.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: Colors.white.withOpacity(0.2)),
                         ),
-                      ),
-                    ),
-                    const SizedBox(height: 28),
-                    
-                    // Main Title
-                    const Text(
-                      'Discover Your\nIdeal Vehicle Today',
-                      style: TextStyle(
-                        fontSize: 26,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF1E293B),
-                        height: 1.25,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    
-                    // Description
-                    Text(
-                      'Choose from a variety of rides offered by nearby drivers. Submit a request and start your journey hassle-free.',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.grey.shade600,
-                        height: 1.45,
-                      ),
-                    ),
-                    const Spacer(),
-                    
-                    // Onboarding buttons
-                    Row(
-                      children: [
-                        Expanded(
-                          child: SizedBox(
-                            height: 50,
-                            child: OutlinedButton(
-                              style: OutlinedButton.styleFrom(
-                                side: BorderSide.none,
-                                backgroundColor: Colors.grey.shade100,
-                                foregroundColor: Colors.grey.shade700,
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                              ),
-                              onPressed: _navigateToAuth,
-                              child: const Text('Skip', style: TextStyle(fontWeight: FontWeight.w600)),
-                            ),
-                          ),
+                        child: IconButton(
+                          onPressed: _navigateToAuth,
+                          icon: const Icon(Icons.arrow_forward_rounded, color: Colors.white),
                         ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: SizedBox(
-                            height: 50,
-                            child: ElevatedButton(
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: brandBlue,
-                                foregroundColor: Colors.white,
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                              ),
-                              onPressed: _navigateToAuth,
-                              child: const Text('Next', style: TextStyle(fontWeight: FontWeight.bold)),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
+                      ).animate().slideY(begin: 0.5, end: 0, duration: 600.ms, delay: 700.ms, curve: Curves.easeOutBack).fadeIn(),
+                    ],
+                  ),
+                ],
               ),
             ),
           ),

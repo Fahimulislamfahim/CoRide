@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import '../providers/ride_provider.dart';
 import '../providers/auth_provider.dart';
 import '../services/socket_service.dart';
@@ -32,24 +33,38 @@ class _KeyMetricCard extends StatelessWidget {
     return Expanded(
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(16),
         child: Container(
-          padding: const EdgeInsets.all(12),
+          padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: Colors.grey.shade50,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.grey.shade200),
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: const Color(0xFFEAECF0)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.02),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ]
           ),
           child: Row(
             children: [
-              Icon(icon, color: const Color(0xFF0F5132), size: 20),
-              const SizedBox(width: 10),
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF2F4F7),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(icon, color: const Color(0xFF475467), size: 20),
+              ),
+              const SizedBox(width: 12),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(label, style: const TextStyle(color: Color(0xFF64748B), fontSize: 11)),
+                  Text(label, style: const TextStyle(color: Color(0xFF667085), fontSize: 12, fontWeight: FontWeight.w500)),
                   const SizedBox(height: 2),
-                  Text(value, style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF1E293B), fontSize: 13)),
+                  Text(value, style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF101828), fontSize: 14)),
                 ],
               )
             ],
@@ -201,15 +216,14 @@ class _PassengerMatchingState extends State<PassengerMatching> {
     final rideProvider = Provider.of<RideProvider>(context);
     final user = Provider.of<AuthProvider>(context).user;
 
-    const primaryColor = Color(0xFF0F5132); // DIU Green
-    const accentColor = Color(0xFF00B4D8); // Sky Teal
+    const primaryColor = Color(0xFF101828);
+    const accentColor = Color(0xFF2E90FA);
 
     // Extract first name for greeting
     final fullName = user?['name'] ?? 'Commuter';
     final firstName = fullName.split(' ')[0];
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FA),
       body: SafeArea(
         bottom: false,
         child: Column(
@@ -237,7 +251,7 @@ class _PassengerMatchingState extends State<PassengerMatching> {
             // Main Content Area
             Expanded(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(16, 16, 16, 96), // Extends scroll past bottom nav
+                padding: const EdgeInsets.fromLTRB(24, 24, 24, 120), // Extends scroll past bottom nav
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -247,40 +261,50 @@ class _PassengerMatchingState extends State<PassengerMatching> {
                       children: [
                         Row(
                           children: [
-                            CircleAvatar(
-                              radius: 22,
-                              backgroundColor: primaryColor.withOpacity(0.08),
-                              child: const Icon(Icons.person, color: primaryColor),
+                            Container(
+                              padding: const EdgeInsets.all(2),
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                border: Border.all(color: const Color(0xFFEAECF0), width: 2),
+                              ),
+                              child: const CircleAvatar(
+                                radius: 24,
+                                backgroundColor: Color(0xFFF2F4F7),
+                                child: Icon(Icons.person_outline, color: Color(0xFF475467)),
+                              ),
                             ),
-                            const SizedBox(width: 12),
+                            const SizedBox(width: 16),
                             Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text('Hello $firstName,', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Color(0xFF1E293B))),
-                                const Text('Where to go?', style: TextStyle(color: Color(0xFF64748B), fontSize: 13, fontWeight: FontWeight.w500)),
+                                Text('Hello $firstName,', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: primaryColor)),
+                                const Text('Where are we heading?', style: TextStyle(color: Color(0xFF667085), fontSize: 14, fontWeight: FontWeight.w500)),
                               ],
                             ),
                           ],
                         ),
                         // Top Up Credit badge
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                           decoration: BoxDecoration(
                             color: Colors.white,
                             borderRadius: BorderRadius.circular(100),
-                            border: Border.all(color: Colors.grey.shade200),
+                            border: Border.all(color: const Color(0xFFEAECF0)),
+                            boxShadow: [
+                              BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 4, offset: const Offset(0, 2))
+                            ]
                           ),
                           child: const Row(
                             children: [
-                              Icon(Icons.wallet, color: primaryColor, size: 16),
-                              SizedBox(width: 6),
-                              Text('100.00 BDT', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Color(0xFF1E293B))),
+                              Icon(Icons.account_balance_wallet_outlined, color: primaryColor, size: 18),
+                              SizedBox(width: 8),
+                              Text('100 BDT', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: primaryColor)),
                             ],
                           ),
                         ),
                       ],
-                    ),
-                    const SizedBox(height: 20),
+                    ).animate().fadeIn().slideY(begin: -0.2),
+                    const SizedBox(height: 32),
 
                     // 2. Mock map search preview (Floating Card)
                     if (_isTracking) ...[
@@ -348,22 +372,22 @@ class _PassengerMatchingState extends State<PassengerMatching> {
                       const SizedBox(height: 20),
                     ],
 
-                    // 3. Category Selector Chips (Reference matching horizontal scrolling selector)
-                    const Text('Vehicle Category', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Color(0xFF1E293B))),
-                    const SizedBox(height: 10),
+                    // 3. Category Selector Chips
+                    const Text('Vehicle Type', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: primaryColor)),
+                    const SizedBox(height: 16),
                     Row(
                       children: [
                         Expanded(child: _buildCategoryTab('Bike', Icons.motorcycle_outlined)),
-                        const SizedBox(width: 8),
+                        const SizedBox(width: 12),
                         Expanded(child: _buildCategoryTab('Car', Icons.directions_car_filled_outlined)),
                       ],
-                    ),
-                    const SizedBox(height: 20),
+                    ).animate().fadeIn(delay: 100.ms).slideY(begin: 0.1),
+                    const SizedBox(height: 32),
 
-                    // 4. Routing swap card panel (From / To inputs)
+                    // 4. Routing swap card panel
                     Card(
                       child: Padding(
-                        padding: const EdgeInsets.all(16.0),
+                        padding: const EdgeInsets.all(20.0),
                         child: Stack(
                           alignment: Alignment.centerRight,
                           children: [
@@ -372,11 +396,12 @@ class _PassengerMatchingState extends State<PassengerMatching> {
                                 // Origin Field
                                 DropdownButtonFormField<String>(
                                   value: _origin,
-                                  decoration: const InputDecoration(
-                                    labelText: 'From Hub',
-                                    prefixIcon: Icon(Icons.circle_outlined, color: accentColor, size: 16),
+                                  decoration: InputDecoration(
+                                    labelText: 'Pickup Location',
+                                    prefixIcon: const Icon(Icons.trip_origin, color: accentColor, size: 20),
+                                    fillColor: const Color(0xFFF9FAFB),
                                   ),
-                                  items: _hubs.keys.map((h) => DropdownMenuItem(value: h, child: Text(h, style: const TextStyle(fontSize: 13)))).toList(),
+                                  items: _hubs.keys.map((h) => DropdownMenuItem(value: h, child: Text(h, style: const TextStyle(fontSize: 14)))).toList(),
                                   onChanged: (val) => setState(() => _origin = val!),
                                 ),
                                 const SizedBox(height: 16),
@@ -384,28 +409,30 @@ class _PassengerMatchingState extends State<PassengerMatching> {
                                 // Destination Field
                                 DropdownButtonFormField<String>(
                                   value: _destination,
-                                  decoration: const InputDecoration(
-                                    labelText: 'To Hub',
-                                    prefixIcon: Icon(Icons.location_on, color: primaryColor, size: 18),
+                                  decoration: InputDecoration(
+                                    labelText: 'Drop-off Location',
+                                    prefixIcon: const Icon(Icons.location_on, color: primaryColor, size: 20),
+                                    fillColor: const Color(0xFFF9FAFB),
                                   ),
-                                  items: _hubs.keys.map((h) => DropdownMenuItem(value: h, child: Text(h, style: const TextStyle(fontSize: 13)))).toList(),
+                                  items: _hubs.keys.map((h) => DropdownMenuItem(value: h, child: Text(h, style: const TextStyle(fontSize: 14)))).toList(),
                                   onChanged: (val) => setState(() => _destination = val!),
                                 ),
                               ],
                             ),
                             // Swapping rotation button
                             Positioned(
-                              right: 12,
-                              top: 40,
+                              right: 16,
+                              top: 48,
                               child: Container(
                                 decoration: BoxDecoration(
                                   color: Colors.white,
                                   shape: BoxShape.circle,
-                                  border: Border.all(color: Colors.grey.shade200),
+                                  border: Border.all(color: const Color(0xFFEAECF0)),
                                   boxShadow: [
                                     BoxShadow(
-                                      color: Colors.black.withOpacity(0.04),
-                                      blurRadius: 4,
+                                      color: Colors.black.withOpacity(0.05),
+                                      blurRadius: 8,
+                                      offset: const Offset(0, 2),
                                     )
                                   ]
                                 ),
@@ -413,17 +440,17 @@ class _PassengerMatchingState extends State<PassengerMatching> {
                                   turns: _swapRotation,
                                   duration: const Duration(milliseconds: 300),
                                   child: IconButton(
-                                    icon: const Icon(Icons.swap_vert, color: primaryColor, size: 20),
+                                    icon: const Icon(Icons.swap_vert, color: primaryColor, size: 22),
                                     onPressed: _swapRoutes,
                                   ),
                                 ),
                               ),
-                            )
+                            ),
                           ],
                         ),
                       ),
-                    ),
-                    const SizedBox(height: 16),
+                    ).animate().fadeIn(delay: 200.ms).slideY(begin: 0.1),
+                    const SizedBox(height: 24),
 
                     // 5. Date picker and Passenger Selector cards
                     Row(
@@ -488,24 +515,19 @@ class _PassengerMatchingState extends State<PassengerMatching> {
                     // Search Button
                     SizedBox(
                       width: double.infinity,
-                      height: 52,
+                      height: 56,
                       child: ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF1E293B), // Dark Slate
-                          foregroundColor: Colors.white,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                        ),
                         onPressed: () => rideProvider.fetchActiveRides(),
                         child: rideProvider.isLoading
-                            ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                            : const Text('Search Match Commutes', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                            ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 3))
+                            : const Text('Find Commute Options', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16)),
                       ),
-                    ),
-                    const SizedBox(height: 28),
+                    ).animate().fadeIn(delay: 400.ms).slideY(begin: 0.1),
+                    const SizedBox(height: 40),
 
                     // 6. Matching Results list
-                    const Text('Available Matches', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Color(0xFF1E293B))),
-                    const SizedBox(height: 12),
+                    const Text('Available Matches', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: primaryColor)),
+                    const SizedBox(height: 16),
 
                     if (rideProvider.activeRides.isEmpty)
                       Center(
@@ -534,115 +556,151 @@ class _PassengerMatchingState extends State<PassengerMatching> {
                         final timeStr = DateFormat('hh:mm a').format(DateTime.parse(ride['departure_time']));
 
                         return Card(
-                          margin: const EdgeInsets.only(bottom: 16),
+                          margin: const EdgeInsets.only(bottom: 20),
                           child: Padding(
-                            padding: const EdgeInsets.all(16.0),
+                            padding: const EdgeInsets.all(20.0),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Row(
                                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                   children: [
-                                    Expanded(
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                      decoration: BoxDecoration(color: const Color(0xFFEFF8FF), borderRadius: BorderRadius.circular(8)),
                                       child: Row(
                                         children: [
-                                          const Icon(Icons.circle, color: accentColor, size: 10),
+                                          Icon(ride['vehicle_type'] == 'Bike' ? Icons.motorcycle : Icons.directions_car, color: accentColor, size: 16),
                                           const SizedBox(width: 6),
-                                          Expanded(
-                                            child: Text(
-                                              '${ride['origin_name']} ➔ ${ride['destination_name']}',
-                                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Color(0xFF1E293B)),
-                                              overflow: TextOverflow.ellipsis,
-                                            ),
-                                          ),
+                                          Text(ride['vehicle_type'], style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF175CD3), fontSize: 12)),
                                         ],
                                       ),
                                     ),
                                     Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                      decoration: BoxDecoration(color: primaryColor.withOpacity(0.08), borderRadius: BorderRadius.circular(8)),
-                                      child: Text('${ride['estimated_fare']} BDT', style: const TextStyle(fontWeight: FontWeight.bold, color: primaryColor, fontSize: 13)),
+                                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                      decoration: BoxDecoration(color: const Color(0xFFF2F4F7), borderRadius: BorderRadius.circular(8)),
+                                      child: Text('${ride['estimated_fare']} BDT', style: const TextStyle(fontWeight: FontWeight.w600, color: Color(0xFF344054), fontSize: 14)),
                                     ),
-                                  ],
-                                ),
-                                const SizedBox(height: 12),
-                                Row(
-                                  children: [
-                                    CircleAvatar(
-                                      radius: 12,
-                                      backgroundColor: primaryColor.withOpacity(0.06),
-                                      child: const Icon(Icons.person, size: 12, color: primaryColor),
-                                    ),
-                                    const SizedBox(width: 8),
-                                    Text(ride['rider_name'], style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-                                    const SizedBox(width: 6),
-                                    Row(
-                                      children: [
-                                        const Icon(Icons.star, color: Colors.amber, size: 14),
-                                        Text(' ${ride['rider_rating']}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11)),
-                                      ],
-                                    ),
-                                    const Spacer(),
-                                    Text(timeStr, style: const TextStyle(color: Colors.grey, fontSize: 12, fontWeight: FontWeight.w500)),
-                                  ],
-                                ),
-                                const Divider(height: 24),
-                                Row(
-                                  children: [
-                                    Icon(ride['vehicle_type'] == 'Bike' ? Icons.motorcycle : Icons.directions_car, color: primaryColor, size: 18),
-                                    const SizedBox(width: 6),
-                                    Text('Available seats: ${ride['available_seats']}', style: const TextStyle(color: Color(0xFF64748B), fontSize: 12)),
                                   ],
                                 ),
                                 const SizedBox(height: 16),
+                                Row(
+                                  children: [
+                                    Container(
+                                      width: 40,
+                                      height: 40,
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFFEAECF0),
+                                        borderRadius: BorderRadius.circular(10),
+                                      ),
+                                      child: const Icon(Icons.person, color: Color(0xFF475467)),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(ride['rider_name'], style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: primaryColor)),
+                                          const SizedBox(height: 4),
+                                          Row(
+                                            children: [
+                                              const Icon(Icons.star_rounded, color: Color(0xFFF79009), size: 16),
+                                              Text(' ${ride['rider_rating']}', style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: Color(0xFF475467))),
+                                              const SizedBox(width: 12),
+                                              const Icon(Icons.event_seat, color: Color(0xFF98A2B3), size: 14),
+                                              Text(' ${ride['available_seats']} left', style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 13, color: Color(0xFF475467))),
+                                            ],
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    Column(
+                                      crossAxisAlignment: CrossAxisAlignment.end,
+                                      children: [
+                                        const Text('Departs at', style: TextStyle(color: Color(0xFF667085), fontSize: 11, fontWeight: FontWeight.w500)),
+                                        const SizedBox(height: 2),
+                                        Text(timeStr, style: const TextStyle(color: primaryColor, fontSize: 15, fontWeight: FontWeight.bold)),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                                const Padding(
+                                  padding: EdgeInsets.symmetric(vertical: 16.0),
+                                  child: Divider(height: 1, color: Color(0xFFEAECF0)),
+                                ),
+                                Row(
+                                  children: [
+                                    Column(
+                                      children: [
+                                        const Icon(Icons.trip_origin, color: accentColor, size: 12),
+                                        const SizedBox(height: 4),
+                                        Container(width: 2, height: 12, color: const Color(0xFFEAECF0)),
+                                        const SizedBox(height: 4),
+                                        const Icon(Icons.location_on, color: primaryColor, size: 12),
+                                      ],
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(ride['origin_name'], style: const TextStyle(fontSize: 14, color: Color(0xFF344054), fontWeight: FontWeight.w500)),
+                                          const SizedBox(height: 16),
+                                          Text(ride['destination_name'], style: const TextStyle(fontSize: 14, color: Color(0xFF344054), fontWeight: FontWeight.w500)),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 24),
 
                                 // Request State Card banner
                                 if (ride['passenger_request_status'] != null)
                                   Padding(
-                                    padding: const EdgeInsets.only(bottom: 12.0),
+                                    padding: const EdgeInsets.only(bottom: 16.0),
                                     child: Container(
-                                      padding: const EdgeInsets.all(12),
+                                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                                       decoration: BoxDecoration(
                                         color: ride['passenger_request_status'] == 'Accepted'
-                                            ? Colors.green.shade50.withOpacity(0.4)
+                                            ? const Color(0xFFECFDF3)
                                             : ride['passenger_request_status'] == 'Pending'
-                                                ? Colors.orange.shade50.withOpacity(0.4)
-                                                : Colors.red.shade50.withOpacity(0.4),
-                                        borderRadius: BorderRadius.circular(10),
+                                                ? const Color(0xFFFFFAEB)
+                                                : const Color(0xFFFEF3F2),
+                                        borderRadius: BorderRadius.circular(12),
                                         border: Border.all(
                                           color: ride['passenger_request_status'] == 'Accepted'
-                                              ? Colors.green.shade100
+                                              ? const Color(0xFFD1FADF)
                                               : ride['passenger_request_status'] == 'Pending'
-                                                  ? Colors.orange.shade100
-                                                  : Colors.red.shade100,
+                                                  ? const Color(0xFFFEF0C7)
+                                                  : const Color(0xFFFEE4E2),
                                         ),
                                       ),
                                       child: Row(
                                         children: [
                                           Icon(
                                             ride['passenger_request_status'] == 'Accepted'
-                                                ? Icons.check_circle_outline
+                                                ? Icons.check_circle
                                                 : ride['passenger_request_status'] == 'Pending'
-                                                    ? Icons.hourglass_empty
-                                                    : Icons.cancel_outlined,
+                                                    ? Icons.access_time_filled
+                                                    : Icons.cancel,
                                             color: ride['passenger_request_status'] == 'Accepted'
-                                                ? Colors.green.shade700
+                                                ? const Color(0xFF12B76A)
                                                 : ride['passenger_request_status'] == 'Pending'
-                                                    ? Colors.orange.shade700
-                                                    : Colors.red.shade700,
-                                            size: 18,
+                                                    ? const Color(0xFFF79009)
+                                                    : const Color(0xFFF04438),
+                                            size: 20,
                                           ),
-                                          const SizedBox(width: 8),
+                                          const SizedBox(width: 12),
                                           Text(
-                                            'Status: ${ride['passenger_request_status']}',
+                                            'Request ${ride['passenger_request_status']}',
                                             style: TextStyle(
-                                              fontWeight: FontWeight.bold,
-                                              fontSize: 12,
+                                              fontWeight: FontWeight.w600,
+                                              fontSize: 14,
                                               color: ride['passenger_request_status'] == 'Accepted'
-                                                  ? Colors.green.shade800
+                                                  ? const Color(0xFF027A48)
                                                   : ride['passenger_request_status'] == 'Pending'
-                                                      ? Colors.orange.shade800
-                                                      : Colors.red.shade800,
+                                                      ? const Color(0xFFB54708)
+                                                      : const Color(0xFFB42318),
                                             ),
                                           ),
                                         ],
@@ -652,51 +710,48 @@ class _PassengerMatchingState extends State<PassengerMatching> {
 
                                 // Card actions
                                 Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                   children: [
                                     if (ride['status'] == 'Active' && ride['passenger_request_status'] == 'Accepted')
-                                      ElevatedButton.icon(
-                                        style: ElevatedButton.styleFrom(
-                                          backgroundColor: Colors.amber.shade800,
-                                          foregroundColor: Colors.white,
-                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                      Expanded(
+                                        child: ElevatedButton.icon(
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor: const Color(0xFFF79009),
+                                            padding: const EdgeInsets.symmetric(vertical: 14),
+                                          ),
+                                          onPressed: () => _startTrackingRide(ride['id'], ride['vehicle_type']),
+                                          icon: const Icon(Icons.near_me),
+                                          label: const Text('Track Live Commute'),
                                         ),
-                                        onPressed: () => _startTrackingRide(ride['id'], ride['vehicle_type']),
-                                        icon: const Icon(Icons.navigation, size: 18),
-                                        label: const Text('Track Live', style: TextStyle(fontWeight: FontWeight.bold)),
-                                      )
-                                    else
-                                      const SizedBox.shrink(),
+                                      ),
                                       
                                     if (ride['passenger_request_status'] == null)
-                                      ElevatedButton(
-                                        style: ElevatedButton.styleFrom(
-                                          backgroundColor: primaryColor,
-                                          foregroundColor: Colors.white,
-                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                      Expanded(
+                                        child: ElevatedButton(
+                                          style: ElevatedButton.styleFrom(
+                                            padding: const EdgeInsets.symmetric(vertical: 14),
+                                          ),
+                                          onPressed: () => _requestJoin(ride['id']),
+                                          child: const Text('Request to Join'),
                                         ),
-                                        onPressed: () => _requestJoin(ride['id']),
-                                        child: const Text('Request Join', style: TextStyle(fontWeight: FontWeight.bold)),
                                       )
                                     else if (ride['passenger_request_status'] == 'Pending' || ride['passenger_request_status'] == 'Accepted')
-                                      ElevatedButton(
-                                        style: ElevatedButton.styleFrom(
-                                          backgroundColor: Colors.red.shade50,
-                                          foregroundColor: Colors.red.shade700,
-                                          side: BorderSide(color: Colors.red.shade100, width: 1),
-                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                      Expanded(
+                                        child: OutlinedButton(
+                                          style: OutlinedButton.styleFrom(
+                                            foregroundColor: const Color(0xFFD92D20),
+                                            side: const BorderSide(color: Color(0xFFFDA29B)),
+                                            padding: const EdgeInsets.symmetric(vertical: 14),
+                                          ),
+                                          onPressed: () => _cancelRequest(ride['id']),
+                                          child: const Text('Cancel Request'),
                                         ),
-                                        onPressed: () => _cancelRequest(ride['id']),
-                                        child: const Text('Cancel Request', style: TextStyle(fontWeight: FontWeight.bold)),
                                       )
-                                    else
-                                      const SizedBox.shrink(),
                                   ],
                                 ),
                               ],
                             ),
                           ),
-                        );
+                        ).animate().fadeIn(duration: 400.ms).slideY(begin: 0.1);
                       }).toList(),
                   ],
                 ),
@@ -710,40 +765,48 @@ class _PassengerMatchingState extends State<PassengerMatching> {
 
   Widget _buildCategoryTab(String vehicle, IconData icon) {
     final isSelected = _selectedVehicle == vehicle;
-    const primaryColor = Color(0xFF0F5132);
+    const primaryColor = Color(0xFF101828);
 
-    return InkWell(
+    return GestureDetector(
       onTap: () {
         setState(() {
           _selectedVehicle = vehicle;
         });
       },
-      borderRadius: BorderRadius.circular(12),
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 12),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        curve: Curves.easeInOut,
+        padding: const EdgeInsets.symmetric(vertical: 14),
         decoration: BoxDecoration(
           color: isSelected ? primaryColor : Colors.white,
           border: Border.all(
-            color: isSelected ? primaryColor : Colors.grey.shade200,
-            width: isSelected ? 1.5 : 1,
+            color: isSelected ? primaryColor : const Color(0xFFEAECF0),
+            width: isSelected ? 2 : 1,
           ),
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: isSelected ? [
+            BoxShadow(
+              color: primaryColor.withOpacity(0.2),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            )
+          ] : [],
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(
               icon,
-              color: isSelected ? Colors.white : Colors.grey.shade600,
-              size: 18,
+              color: isSelected ? Colors.white : const Color(0xFF667085),
+              size: 20,
             ),
-            const SizedBox(width: 8),
+            const SizedBox(width: 10),
             Text(
               vehicle,
               style: TextStyle(
-                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                color: isSelected ? Colors.white : Colors.grey.shade700,
-                fontSize: 13,
+                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                color: isSelected ? Colors.white : const Color(0xFF344054),
+                fontSize: 15,
               ),
             )
           ],
