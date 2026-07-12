@@ -1,7 +1,8 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../providers/auth_provider.dart';
+import '../main.dart'; // import ios colors
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -19,15 +20,15 @@ class _LoginScreenState extends State<LoginScreen> {
   String _name = '';
   String _studentId = '';
   String _phone = '';
-  String _role = 'Passenger'; // Default role
+  String _selectedRole = 'Passenger';
 
   void _submitForm() async {
     if (!_formKey.currentState!.validate()) return;
-    
     _formKey.currentState!.save();
+
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
 
-    bool success;
+    bool success = false;
     if (_isLoginMode) {
       success = await authProvider.login(_email, _password);
     } else {
@@ -37,92 +38,80 @@ class _LoginScreenState extends State<LoginScreen> {
         password: _password,
         studentId: _studentId,
         phone: _phone,
-        role: _role,
+        role: _selectedRole,
       );
     }
 
-    if (success && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(_isLoginMode ? 'Welcome back to CoRide!' : 'Registration successful!'),
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        ),
-      );
-    } else if (authProvider.error != null && mounted) {
-      showDialog(
+    if (!success && mounted) {
+      showCupertinoDialog(
         context: context,
-        builder: (ctx) => AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          title: const Row(
-            children: [
-              Icon(Icons.error_outline, color: Colors.red),
-              SizedBox(width: 8),
-              Text('Authentication Error'),
-            ],
-          ),
-          content: Text(authProvider.error!),
+        builder: (ctx) => CupertinoAlertDialog(
+          title: const Text('Error'),
+          content: Text(authProvider.error ?? 'Authentication failed.'),
           actions: [
-            TextButton(
+            CupertinoDialogAction(
+              child: const Text('OK'),
               onPressed: () => Navigator.of(ctx).pop(),
-              child: const Text('OK', style: TextStyle(fontWeight: FontWeight.bold)),
             )
           ],
         ),
       );
     }
-
   }
 
-  // Modern UI Card Button Selector for Roles
-  Widget _buildRoleCard(String roleName, IconData icon) {
-    final isSelected = _role == roleName;
-    const primaryColor = Color(0xFF101828);
-    const accentColor = Color(0xFF2E90FA);
+  Widget _buildRoleSegment() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: iosDarkGray,
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: CupertinoSlidingSegmentedControl<String>(
+        backgroundColor: CupertinoColors.transparent,
+        thumbColor: iosWhite.withOpacity(0.15),
+        groupValue: _selectedRole,
+        children: const {
+          'Passenger': Padding(padding: EdgeInsets.symmetric(horizontal: 10), child: Text('Passenger', style: TextStyle(color: iosTextLight))),
+          'Rider': Padding(padding: EdgeInsets.symmetric(horizontal: 10), child: Text('Rider', style: TextStyle(color: iosTextLight))),
+          'Both': Padding(padding: EdgeInsets.symmetric(horizontal: 10), child: Text('Both', style: TextStyle(color: iosTextLight))),
+        },
+        onValueChanged: (value) {
+          if (value != null) {
+            setState(() => _selectedRole = value);
+          }
+        },
+      ),
+    );
+  }
 
-    return GestureDetector(
-      onTap: () {
-        setState(() {
-          _role = roleName;
-        });
-      },
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        curve: Curves.easeInOut,
-        padding: const EdgeInsets.symmetric(vertical: 16),
+  Widget _buildTextField({
+    required String placeholder,
+    required IconData prefixIcon,
+    bool obscureText = false,
+    TextInputType keyboardType = TextInputType.text,
+    required String? Function(String?) validator,
+    required void Function(String?) onSaved,
+  }) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      child: CupertinoTextFormFieldRow(
+        placeholder: placeholder,
+        placeholderStyle: const TextStyle(color: iosGrayText),
+        obscureText: obscureText,
+        keyboardType: keyboardType,
+        style: const TextStyle(color: iosTextLight),
         decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFFEFF8FF) : Colors.white,
-          border: Border.all(
-            color: isSelected ? accentColor : const Color(0xFFEAECF0),
-            width: isSelected ? 2 : 1,
-          ),
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: isSelected ? [
-            BoxShadow(
-              color: accentColor.withOpacity(0.1),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
-            )
-          ] : [],
+          color: iosDarkGray,
+          borderRadius: BorderRadius.circular(12),
         ),
-        child: Column(
-          children: [
-            Icon(
-              icon,
-              color: isSelected ? accentColor : const Color(0xFF667085),
-              size: 24
-            ),
-            const SizedBox(height: 8),
-            Text(
-              roleName,
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-                color: isSelected ? accentColor : const Color(0xFF344054),
-              ),
-            )
-          ],
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+        prefix: Padding(
+          padding: const EdgeInsets.only(right: 12.0),
+          child: Icon(prefixIcon, color: iosGrayText, size: 20),
         ),
+        validator: validator,
+        onSaved: onSaved,
       ),
     );
   }
@@ -131,247 +120,161 @@ class _LoginScreenState extends State<LoginScreen> {
   Widget build(BuildContext context) {
     final authProvider = Provider.of<AuthProvider>(context);
     
-    const primaryColor = Color(0xFF101828); // Deep sleek charcoal
-    const accentColor = Color(0xFF2E90FA); // Slick modern blue
+    return CupertinoPageScaffold(
+      backgroundColor: iosBlack,
+      child: SafeArea(
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  // App Icon / Logo
+                  Container(
+                    width: 80,
+                    height: 80,
+                    margin: const EdgeInsets.only(bottom: 32),
+                    decoration: BoxDecoration(
+                      color: iosBlue,
+                      borderRadius: BorderRadius.circular(22),
+                      boxShadow: [
+                        BoxShadow(
+                          color: iosBlue.withOpacity(0.3),
+                          blurRadius: 20,
+                          offset: const Offset(0, 10),
+                        )
+                      ],
+                    ),
+                    child: const Icon(CupertinoIcons.car_detailed, size: 40, color: iosWhite),
+                  ).animate().scale(curve: Curves.easeOutBack, duration: 600.ms),
 
-    return Scaffold(
-      body: Stack(
-        children: [
-          // 1. Premium Minimalist Background
-          Container(
-            color: const Color(0xFFF9FAFB),
-            width: double.infinity,
-            height: double.infinity,
-          ),
-          
-          // Soft ambient mesh gradient shapes (modern UI trend)
-          Positioned(
-            top: -150,
-            left: -100,
-            child: Container(
-              width: 400,
-              height: 400,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: RadialGradient(
-                  colors: [
-                    accentColor.withOpacity(0.15),
-                    Colors.transparent,
-                  ],
-                ),
-              ),
-            ).animate(onPlay: (controller) => controller.repeat(reverse: true)).move(duration: 4000.ms, begin: const Offset(0, 0), end: const Offset(20, 20)),
-          ),
+                  Text(
+                    _isLoginMode ? 'Sign In' : 'Create Account',
+                    style: const TextStyle(
+                      fontSize: 34,
+                      fontWeight: FontWeight.w700,
+                      color: iosTextLight,
+                      letterSpacing: -1,
+                    ),
+                    textAlign: TextAlign.center,
+                  ).animate().fadeIn(delay: 200.ms).slideY(begin: 0.1, duration: 400.ms),
 
-          Positioned(
-            bottom: -100,
-            right: -50,
-            child: Container(
-              width: 300,
-              height: 300,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: RadialGradient(
-                  colors: [
-                    const Color(0xFF027A48).withOpacity(0.1),
-                    Colors.transparent,
-                  ],
-                ),
-              ),
-            ).animate(onPlay: (controller) => controller.repeat(reverse: true)).move(duration: 5000.ms, begin: const Offset(0, 0), end: const Offset(-20, -10)),
-          ),
+                  const SizedBox(height: 8),
 
-          // 2. Main Login Form Container
-          Center(
-            child: SingleChildScrollView(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 20.0),
-                child: Hero(
-                  tag: 'auth_card',
-                  child: Card(
-                    // Card theme handled in main.dart is already premium
-                    child: Padding(
-                      padding: const EdgeInsets.all(32.0),
-                      child: Form(
-                        key: _formKey,
-                        child: AnimatedSize(
-                          duration: const Duration(milliseconds: 400),
-                          curve: Curves.easeOutCubic,
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              // Identity Header
-                              Container(
-                                padding: const EdgeInsets.all(12),
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFFF2F4F7),
-                                  borderRadius: BorderRadius.circular(16),
-                                  border: Border.all(color: const Color(0xFFEAECF0)),
-                                ),
-                                child: const Icon(Icons.directions_car_filled_rounded, size: 36, color: primaryColor),
-                              ).animate().scale(delay: 100.ms, duration: 400.ms, curve: Curves.easeOutBack),
-                              const SizedBox(height: 24),
+                  Text(
+                    'Campus ridesharing, reimagined.',
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: iosTextLight.withOpacity(0.6),
+                    ),
+                    textAlign: TextAlign.center,
+                  ).animate().fadeIn(delay: 300.ms),
 
-                              Text(
-                                _isLoginMode ? 'Welcome back' : 'Create an account',
-                                style: const TextStyle(
-                                  fontSize: 28,
-                                  fontWeight: FontWeight.bold,
-                                  color: primaryColor,
-                                  letterSpacing: -0.5,
-                                ),
-                              ).animate().fadeIn(delay: 200.ms).slideY(begin: 0.2),
+                  const SizedBox(height: 48),
 
-                              const SizedBox(height: 8),
+                  // Fields Container
+                  Container(
+                    decoration: BoxDecoration(
+                      color: iosDarkGray.withOpacity(0.5),
+                      borderRadius: BorderRadius.circular(24),
+                    ),
+                    padding: const EdgeInsets.all(4),
+                    child: Column(
+                      children: [
+                        if (!_isLoginMode) ...[
+                          _buildTextField(
+                            placeholder: 'Full Name',
+                            prefixIcon: CupertinoIcons.person,
+                            validator: (val) => val == null || val.isEmpty ? 'Required' : null,
+                            onSaved: (val) => _name = val!,
+                          ).animate().fadeIn().slideY(begin: -0.1),
+                          _buildTextField(
+                            placeholder: 'Student/Employee ID',
+                            prefixIcon: CupertinoIcons.badge_plus_radiowaves_right,
+                            validator: (val) => val == null || val.isEmpty ? 'Required' : null,
+                            onSaved: (val) => _studentId = val!,
+                          ).animate().fadeIn().slideY(begin: -0.1),
+                          _buildTextField(
+                            placeholder: 'Phone Number',
+                            prefixIcon: CupertinoIcons.phone,
+                            keyboardType: TextInputType.phone,
+                            validator: (val) => val == null || val.isEmpty ? 'Required' : null,
+                            onSaved: (val) => _phone = val!,
+                          ).animate().fadeIn().slideY(begin: -0.1),
+                        ],
 
-                              Text(
-                                _isLoginMode ? 'Enter your details to access CoRide.' : 'Join the campus ridesharing network.',
-                                style: const TextStyle(fontSize: 15, color: Color(0xFF475467)),
-                                textAlign: TextAlign.center,
-                              ).animate().fadeIn(delay: 300.ms).slideY(begin: 0.2),
+                        _buildTextField(
+                          placeholder: 'DIU Academic Email',
+                          prefixIcon: CupertinoIcons.mail,
+                          keyboardType: TextInputType.emailAddress,
+                          validator: (val) {
+                            if (val == null || val.isEmpty) return 'Required';
+                            if (!val.endsWith('@diu.edu.bd')) return 'Must be @diu.edu.bd';
+                            return null;
+                          },
+                          onSaved: (val) => _email = val!.trim(),
+                        ).animate().fadeIn(delay: 400.ms).slideY(begin: 0.1),
 
-                              const SizedBox(height: 32),
+                        _buildTextField(
+                          placeholder: 'Password',
+                          prefixIcon: CupertinoIcons.lock,
+                          obscureText: true,
+                          validator: (val) => val == null || val.length < 6 ? 'Min 6 chars' : null,
+                          onSaved: (val) => _password = val!,
+                        ).animate().fadeIn(delay: 500.ms).slideY(begin: 0.1),
 
-                              // Registration fields
-                              if (!_isLoginMode) ...[
-                                TextFormField(
-                                  decoration: const InputDecoration(
-                                    labelText: 'Full Name',
-                                    prefixIcon: Icon(Icons.person_outline),
-                                  ),
-                                  validator: (value) => value == null || value.isEmpty ? 'Please enter your name' : null,
-                                  onSaved: (value) => _name = value!,
-                                ).animate().fadeIn(duration: 400.ms).slideX(begin: -0.1),
-                                const SizedBox(height: 16),
-
-                                TextFormField(
-                                  decoration: const InputDecoration(
-                                    labelText: 'Student / Employee ID',
-                                    prefixIcon: Icon(Icons.badge_outlined),
-                                  ),
-                                  validator: (value) => value == null || value.isEmpty ? 'Please enter your DIU ID' : null,
-                                  onSaved: (value) => _studentId = value!,
-                                ).animate().fadeIn(duration: 400.ms).slideX(begin: -0.1),
-                                const SizedBox(height: 16),
-
-                                TextFormField(
-                                  decoration: const InputDecoration(
-                                    labelText: 'Phone Contact',
-                                    prefixIcon: Icon(Icons.phone_android_outlined),
-                                  ),
-                                  keyboardType: TextInputType.phone,
-                                  validator: (value) => value == null || value.length < 10 ? 'Please enter your phone number' : null,
-                                  onSaved: (value) => _phone = value!,
-                                ).animate().fadeIn(duration: 400.ms).slideX(begin: -0.1),
-                                const SizedBox(height: 16),
-                              ],
-
-                              // Email Input
-                              TextFormField(
-                                decoration: InputDecoration(
-                                  labelText: 'DIU Academic Email',
-                                  helperText: 'Must use official @diu.edu.bd domain',
-                                  helperStyle: const TextStyle(fontSize: 12, color: Color(0xFF667085)),
-                                  prefixIcon: const Icon(Icons.email_outlined),
-                                  // Subtle highlight when registering to indicate domain rule
-                                  filled: !_isLoginMode,
-                                  fillColor: _isLoginMode ? Colors.white : const Color(0xFFF9FAFB),
-                                ),
-                                keyboardType: TextInputType.emailAddress,
-                                validator: (value) {
-                                  if (value == null || value.isEmpty) {
-                                    return 'Please enter your email';
-                                  }
-                                  if (!value.endsWith('@diu.edu.bd')) {
-                                    return 'Use official @diu.edu.bd email domain';
-                                  }
-                                  return null;
-                                },
-                                onSaved: (value) => _email = value!.trim(),
-                              ).animate().fadeIn(delay: 400.ms).slideY(begin: 0.1),
-                              const SizedBox(height: 16),
-
-                              // Password Input
-                              TextFormField(
-                                decoration: const InputDecoration(
-                                  labelText: 'Password',
-                                  prefixIcon: Icon(Icons.lock_outline),
-                                ),
-                                obscureText: true,
-                                validator: (value) => value == null || value.length < 6 ? 'Password must be at least 6 characters' : null,
-                                onSaved: (value) => _password = value!,
-                              ).animate().fadeIn(delay: 500.ms).slideY(begin: 0.1),
-                              const SizedBox(height: 24),
-
-                              // Segmented Role cards
-                              if (!_isLoginMode) ...[
-                                const Align(
-                                  alignment: Alignment.centerLeft,
-                                  child: Padding(
-                                    padding: EdgeInsets.only(bottom: 12.0, left: 4),
-                                    child: Text('Register account role:', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: Color(0xFF344054))),
-                                  ),
-                                ),
-                                Row(
-                                  children: [
-                                    Expanded(child: _buildRoleCard('Passenger', Icons.people_outline)),
-                                    const SizedBox(width: 12),
-                                    Expanded(child: _buildRoleCard('Rider', Icons.motorcycle_outlined)),
-                                    const SizedBox(width: 12),
-                                    Expanded(child: _buildRoleCard('Both', Icons.commute_outlined)),
-                                  ],
-                                ).animate().fadeIn(duration: 400.ms).scaleY(alignment: Alignment.topCenter),
-                                const SizedBox(height: 32),
-                              ],
-
-                              // Submit Button
-                              SizedBox(
-                                width: double.infinity,
-                                height: 56,
-                                child: ElevatedButton(
-                                  onPressed: authProvider.isLoading ? null : _submitForm,
-                                  child: authProvider.isLoading
-                                      ? const SizedBox(
-                                          width: 24,
-                                          height: 24,
-                                          child: CircularProgressIndicator(color: Colors.white, strokeWidth: 3),
-                                        )
-                                      : Text(
-                                          _isLoginMode ? 'Sign in' : 'Create account',
-                                          style: const TextStyle(fontSize: 16),
-                                        ),
-                                ),
-                              ).animate().fadeIn(delay: 600.ms).slideY(begin: 0.2),
-                              const SizedBox(height: 24),
-
-                              // Form toggler link
-                              TextButton(
-                                onPressed: () {
-                                  setState(() {
-                                    _isLoginMode = !_isLoginMode;
-                                  });
-                                },
-                                style: TextButton.styleFrom(
-                                  foregroundColor: accentColor,
-                                  textStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
-                                ),
-                                child: Text(
-                                  _isLoginMode ? 'Don\'t have an account? Sign up' : 'Already have an account? Log in',
-                                ),
-                              ).animate().fadeIn(delay: 700.ms),
-                            ],
+                        if (!_isLoginMode) ...[
+                          const SizedBox(height: 8),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                            child: Align(
+                              alignment: Alignment.centerLeft,
+                              child: Text('Role', style: TextStyle(color: iosTextLight.withOpacity(0.6), fontSize: 13)),
+                            ),
                           ),
-                        ),
-                      ),
+                          const SizedBox(height: 8),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                            child: _buildRoleSegment(),
+                          ).animate().fadeIn().scale(alignment: Alignment.center),
+                          const SizedBox(height: 8),
+                        ],
+                      ],
                     ),
                   ),
-                ),
+
+                  const SizedBox(height: 32),
+
+                  CupertinoButton(
+                    color: iosBlue,
+                    borderRadius: BorderRadius.circular(16),
+                    onPressed: authProvider.isLoading ? null : _submitForm,
+                    child: authProvider.isLoading
+                        ? const CupertinoActivityIndicator(color: iosWhite)
+                        : Text(
+                            _isLoginMode ? 'Sign In' : 'Sign Up',
+                            style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 17, color: iosWhite),
+                          ),
+                  ).animate().fadeIn(delay: 600.ms).scale(),
+
+                  const SizedBox(height: 24),
+
+                  CupertinoButton(
+                    onPressed: () => setState(() => _isLoginMode = !_isLoginMode),
+                    child: Text(
+                      _isLoginMode ? "Don't have an account? Sign up" : 'Already have an account? Log in',
+                      style: const TextStyle(color: iosBlue, fontSize: 15),
+                    ),
+                  ).animate().fadeIn(delay: 700.ms),
+                ],
               ),
             ),
           ),
-        ],
+        ),
       ),
     );
   }
-
 }
